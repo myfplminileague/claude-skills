@@ -72,7 +72,7 @@ git worktree add -b issue-<N>-<slug> <path>/issue-<N> <base>
 
 The review agents only run tests locally — **CI is the real gate** and is still pending when the PR opens. After the PR agent returns the URL, the orchestrator records the check state (`gh pr checks <N>`) for the final report; do not wait on CI here (the skill stops at open PRs).
 
-**d. Cleanup** — once the PR URL is returned, run `git worktree remove <path>/issue-<N>` (the branch is pushed, so it's safe to remove the worktree; keep the branch). 
+**d. Cleanup** — once the PR URL is returned, run `git worktree remove <path>/issue-<N>` (the branch is pushed, so it's safe to remove the worktree; keep the branch).
 
 ### Failure handling
 The pipeline is **not** green-path-only. At any stage that reports failure — bootstrap fails, builder's tests/typecheck won't pass, a fix agent can't resolve a blocking finding or introduces a regression — **retry that one stage once** with the failure detail fed back in. If it still fails: **stop that issue, do not open its PR**, force-remove its worktree and delete its branch (see below), and continue with the wave's other issues (a failed issue blocks only its own dependents, not its independent siblings). Record it as **FAILED** with the reason in the final report. Never paper over a red stage by advancing to the next one.
