@@ -141,7 +141,9 @@ If two or more roles fail the retry, abandon the fan-out and **run the remaining
 
 ### 6. Challenge the blocking findings
 
-Only `block` findings, and only if there are any. One `Agent` call per blocking finding, prompted to **refute**:
+**Deduplicate first.** Several reviewers reaching the same underlying defect from different briefs is the system working — but it is one claim, not four, and challenging it four times wastes the pass and produces four verdicts on one line of code. Collapse blocking findings that name the same root cause into a single claim, listing which roles reached it. **Independent convergence is evidence: say so in the report, and give the merged claim one challenge, not none.**
+
+Then one `Agent` call per **distinct** blocking claim, prompted to **refute**:
 
 > Here is a review finding on this diff: `<finding>`. Your job is to refute it. Read the actual code at that location and the rule it cites. Return `REFUTED: <why>` if the finding is wrong, misreads the code, or rests on a rule that does not say what it claims — or `STANDS: <the one-line reason it is real>`. `<default-clause>`
 
@@ -152,7 +154,13 @@ Only `block` findings, and only if there are any. One `Agent` call per blocking 
 
 **Run the challenge on a different model from the one that produced the finding** (set `model` on the Agent call). A challenger sharing the reviewer's model shares its blind spots, so it mostly re-derives the original reasoning and agrees with itself. This is the one point in the pipeline where independence is worth paying for.
 
-`REFUTED` findings are demoted to `note` with the refutation attached, not deleted — the user still sees them and can disagree. This costs one cheap agent per blocker and is what stops plausible-but-wrong findings reaching the user.
+**A third verdict: `STANDS — FIX WRONG`.** Refutation is not binary. A challenger may confirm the defect while establishing that the proposed remedy is wrong — the wrong file, the wrong repo, a mitigation that already exists elsewhere. Observed: a finding correctly identified a stale published policy but sent the fix to a repo whose sync pipeline is not built yet. Record the correction alongside the finding; a right diagnosis with a wrong prescription still wastes someone's afternoon.
+
+**Silence fails safe.** A challenger that returns no verdict — idle, dead, or empty — leaves the finding **`block`, unchanged**. Retry once; if the second attempt is also silent, stop and mark the finding `unchallenged` in the report. Never read an absent verdict as consent to demote. This is the opposite of the fan-out's rule and deliberately so: there, a missing report means work was not done, so the run is `INCOMPLETE`; here, a missing verdict would *delete* work already done. Deleting a finding requires an affirmative refutation, never the absence of one.
+
+Accept that failing safe has a cost — an unchallenged weak finding stays at `block` and someone must argue it down by hand. That is the correct side to err on: a wrongly-kept finding costs one conversation, a wrongly-deleted one costs whatever it was about.
+
+`REFUTED` findings are demoted to `note` with the refutation attached, not deleted — the user still sees them and can disagree. This costs one cheap agent per distinct blocker and is what stops plausible-but-wrong findings reaching the user.
 
 ### 7. Wenger's report
 
@@ -218,6 +226,8 @@ State these when someone asks how much to trust a clean run:
 - **Same model on both sides.** Builder and reviewers are separate agents, but one model with one set of blind spots. Five roles produce five prompts over one prior, not five independent judgements. The model-diverse refute pass narrows this at one point; it does not remove it.
 - **Diff-scoped.** Nobody sees that this is the fourth implementation of the same thing, that a route is now unreachable, or that it duplicates what merged last week. Pair with `implement-issues`' pre-flight overlap scan, which exists for exactly this.
 - **Packs are the ceiling.** Every reviewer is exactly as good as the rules it was handed. An unwritten rule is an unreviewable one.
+- **Agents go silent.** Observed across two trial runs: reviewers and challengers both sometimes finish without returning anything, and not uniformly across models. Every stage therefore has an explicit rule for absence — `DID NOT REPORT` in the fan-out, `unchallenged` in the refute pass — and neither ever reads as approval. If a run reports neither, the orchestrator skipped a check.
+- **Convergence can be correlated.** Roles sharing a model can reach the same wrong conclusion and look like corroboration. Cross-model challenge is what distinguishes agreement from a shared blind spot; a finding confirmed only by same-model roles is weaker than its vote count suggests.
 
 ## Adding a repo
 
