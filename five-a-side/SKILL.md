@@ -98,7 +98,10 @@ git log <fixed-point> --oneline -15 --  <changed paths>
 gh pr list --state merged --limit 15 --json number,title,mergedAt -q '.[] | "#\(.number) \(.title)"'
 
 # Who else depends on what changed, so a "small" edit's real radius is visible
-grep -rl "<each changed module's export or path>" --include=*.{ts,tsx,js,py} . | head -20
+# Quote the patterns: unquoted --include=*.ts is glob-expanded by the calling
+# shell before grep sees it, and zsh aborts the command outright.
+grep -rl "<each changed module's export or path>" \
+  --include='*.ts' --include='*.tsx' --include='*.js' --include='*.py' . | head -20
 
 # How settled each changed file is: brand new, or load-bearing for a year
 git log --oneline -3 -- <each changed file>
