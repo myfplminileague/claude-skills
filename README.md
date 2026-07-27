@@ -8,10 +8,16 @@ Upstream description: A collection of [Claude Code](https://claude.com/claude-co
 
 | Skill | What it does |
 | --- | --- |
+| [`to-prd`](to-prd/SKILL.md) | Turn the current conversation into a PRD and publish it to the issue tracker. |
+| [`to-issues`](to-issues/SKILL.md) | Break a plan, spec or PRD into independently-grabbable issues using tracer-bullet vertical slices. |
 | [`next-batch`](next-batch/SKILL.md) | Triage front-end for `/implement-issues`: pick and prepare the next buildable batch of GitHub issues, check dependencies and in-flight work, and propose a build order. |
-| [`implement-issues`](implement-issues/SKILL.md) | Orchestrate end-to-end implementation of GitHub issues — dependency-ordered parallel builders (TDD), two adversarial review-and-fix cycles, then one PR per issue. |
+| [`implement-issues`](implement-issues/SKILL.md) | Orchestrate end-to-end implementation of GitHub issues — dependency-ordered parallel builders (TDD), two `five-a-side` review-and-fix cycles, then one PR per issue. |
+| [`five-a-side`](five-a-side/SKILL.md) | The review gate. Five adversarial reviewers — standards, spec, adversary, operator, prover — plus a `steward` substitute for anything touching a user, each loading the repo's own rule packs, aggregated into one merge decision. |
 | [`ship`](ship/SKILL.md) | Merge-and-deploy runbook for open PRs — watch CI, merge in dependency-safe order, run migrations, watch the deploy, smoke-check, then clean up branches. |
 | [`tdd`](tdd/SKILL.md) | Test-driven development with the red-green-refactor loop, plus references on mocking, interface design, deep modules, and refactoring. |
+| [`chunk-status`](chunk-status/SKILL.md) | Reconcile a project-plan chunk against reality — issues, merged PRs, deployed app — and propose plan-doc corrections. |
+| [`grill-me`](grill-me/SKILL.md) | Interview the user relentlessly about a plan or design until every branch of the decision tree is resolved. |
+| [`two-axis-review`](two-axis-review/SKILL.md) | **Deprecated** — superseded by `five-a-side`; hands off to it. Slated for deletion. |
 
 ## Installation
 
@@ -29,6 +35,16 @@ Then copy or symlink the skills you want into `~/.claude/skills/` (personal) or 
 claude-skills/
 ├── next-batch/SKILL.md
 ├── implement-issues/SKILL.md
+├── five-a-side/
+│   ├── SKILL.md
+│   └── references/
+│       ├── standards.md      # Ødegaard — conventions + Fowler smell baseline
+│       ├── spec.md           # Bergkamp — fidelity to the issue/PRD/design
+│       ├── adversary.md      # Rice     — authz, injection, secrets, PII, concurrency
+│       ├── operator.md       # Raya     — observability, rollback, blast radius
+│       ├── prover.md         # Henry    — mutation-test the assertions
+│       ├── steward.md        # Mertesacker — sub: consent, retention, a11y, promises
+│       └── pack-format.md    # how a repo writes its own rule packs
 ├── ship/SKILL.md
 └── tdd/
     ├── SKILL.md
@@ -38,6 +54,8 @@ claude-skills/
     ├── refactoring.md
     └── tests.md
 ```
+
+Rule **packs** are not in this repo — they live in each consuming repo at `.claude/five-a-side/packs/*.md`, because they are that repo's rules. The skill is org-wide and identical everywhere; the packs are local and differ. See [`five-a-side/references/pack-format.md`](five-a-side/references/pack-format.md).
 
 ## License
 
