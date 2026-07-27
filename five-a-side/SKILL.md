@@ -31,6 +31,34 @@ Five reviewers, one question each. The **roles are fixed**; the **domain is a va
 - **Skip what tooling already enforces.** Lint, format and typecheck are CI's job. A reviewer spending a finding on something `ruff`/`eslint` catches has wasted it.
 - This skill **reviews**; it does not fix, commit, push or merge.
 
+## Model tiers
+
+Set `model` per `Agent` call. Tier by **what the role has to invent**, not by how important it sounds — a role reading rules off a good pack is doing lookup, a role that must imagine an attack nobody wrote down is doing the hard thing.
+
+| Role | Tier | Why |
+| --- | --- | --- |
+| `adversary` | **top** | Has to invent the attack. In trial it chained a push to `staging` → auto-deploy → a prod rollback with a `../..` path to serve an attacker's tree from prod. Nothing in any pack described that. |
+| `operator` | **top** | Has to hold the whole failure surface at once and know what the shell actually does — e.g. that bash elides the fork for a lone simple command but not for a `cd && cmd` list, which is the entire probe-leak bug. |
+| `prover` | **top** | Choosing *which* mutation is worth making, and explaining why a survivor survived, is judgement. Its cost is mostly tool calls (it runs suites repeatedly), so a lower tier saves little and loses the insight. |
+| `standards` | **mid** | Mostly "does this line breach that written rule". The pack does the thinking; the model does the matching. |
+| `spec` | **mid** | A requirement-by-requirement walk. Escalate to **top** when there is no pack, or the spec is a long PRD with interacting acceptance criteria. |
+| `steward` | **mid** | Checklist-driven against the pack. Escalate to **top** for payments, consent defaults, or anything where the answer is "it depends". |
+| refute pass | **top**, and **never below the tier of the reviewer that produced the finding** | See below. |
+
+**Do not economise on the refute pass.** It is the only stage that *removes* findings. The failure modes are not symmetric: a weak finder misses something, which shows up as a thin report someone can notice; a weak refuter deletes something already found, and nobody ever learns it existed. Combined with the split uncertainty defaults, a cheap refuter is the single most effective way to make this system quietly worse while it appears to be working. It must also differ from the producing reviewer's model — same model, same blind spot, so it re-derives the original reasoning and agrees with itself.
+
+**Escalation rules.**
+
+- **Hotfix → every role on top tier.** Same argument as the full squad: highest blast radius, least time, no staging net.
+- **A mid-tier role that reports `dropped: n more` was saturated.** Re-run that one role at top tier before trusting its five. Truncation is the signal that the cheap tier hit its ceiling.
+- **No pack matched → top tier for everyone.** Mid tier is only justified when a pack is carrying the reasoning; with no pack the model is doing it unaided.
+
+**Where the real saving is.** Model tier is the smaller lever. The team sheet is the bigger one — a typical UI diff plays three roles, not six, and that halves the run regardless of tier. Tune the pack globs before tuning the models.
+
+**Depth.** Default is the deep run: full tiers, refute pass on. `/five-a-side quick` drops every role to mid tier and **skips the refute pass** — findings come through unfiltered, so a quick run is noisier, never quieter. That is the correct trade for a work-in-progress sanity check, and it is not acceptable on a PR.
+
+If a named model is unavailable in the session, inherit the parent's model and say so in the report rather than silently downgrading.
+
 ## When it must run
 
 Every change landing on a **protected branch** gets reviewed — in this org that is `staging` and `main` on the frontend, `main` on the backend. `staging` is not a lower bar: it is the first branch that actually deploys, so it is the first place a defect becomes real.
@@ -86,6 +114,8 @@ One message, one `Agent` call per playing role, `agentType` general-purpose. Eac
 - The spec source for `spec` (issue number to `gh issue view`, or a path).
 - **Its output path**: `<scratch>/five-a-side/<role>.md`.
 
+Set `model` on each call per *Model tiers* above, and record the tier each role ran at — the report must state it, because a finding's absence means something different at mid tier than at top.
+
 Every prompt ends with the findings contract:
 
 > Write your findings to `<scratch>/five-a-side/<role>.md` and return ONLY the word `DONE` plus your finding count. Max 5 findings. Format each as:
@@ -128,7 +158,8 @@ Only `block` findings, and only if there are any. One `Agent` call per blocking 
 
 ```
 ## Team sheet
-Played: standards, spec, prover   Benched: adversary, operator (no matching pack)
+Played: standards (mid), spec (mid), prover (top)
+Benched: adversary, operator, steward (no matching pack section)
 Packs:  design-system, frontend-app
 
 ## Ødegaard — Standards
