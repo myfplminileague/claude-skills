@@ -112,7 +112,7 @@ One message, one `Agent` call per playing role, `agentType` general-purpose. Eac
 - The full text of `references/<role>.md`.
 - The `## <role>` sections of every matched pack, pasted in full. The subagent has no other access to them.
 - The spec source for `spec` (issue number to `gh issue view`, or a path).
-- **Its output path**: `<scratch>/five-a-side/<role>.md`.
+- **Its output path**: `<scratch>/five-a-side/<role>.md`. **`<scratch>` must be outside the repo working tree.** Reports written inside it are picked up by repo-wide formatters and linters — `prettier --check .` and friends do not care that a file is untracked — so the first commit after a review fails on the review's own artifacts.
 
 Set `model` on each call per *Model tiers* above, and record the tier each role ran at — the report must state it, because a finding's absence means something different at mid tier than at top.
 
@@ -201,7 +201,9 @@ Do not pick a "worst finding overall". Report the worst *within each role* and s
 HUMAN ACK REQUIRED — <reason>. A named person must read this report before merge.
 ```
 
-This is appended *regardless of the decision line*, including on `CLEAR TO MERGE`. These five areas are the ones where a mistake is expensive, slow to detect, and hard to reverse, and a clean automated review is not sufficient grounds to skip a person on them. The skill cannot enforce this — it states the requirement; the CI gate below is what makes it stick.
+This is appended *regardless of the decision line*, including on `CLEAR TO MERGE`. These five areas are the ones where a mistake is expensive, slow to detect, and hard to reverse, and a clean automated review is not sufficient grounds to skip a person on them.
+
+The skill only states the requirement. For the marker to mean anything the gate must **fail** on it unless a second, separately-applied signal says a named person acted — a `human-ack:confirmed` label or a required approving review. A gate that prints a notice and exits zero leaves the marker riding through untouched, which is worse than not emitting it: it reads as a control while being decoration. And note the author writes the body, so this constrains an honest author, not a determined one.
 
 ## Called by another skill
 
@@ -215,7 +217,18 @@ This is appended *regardless of the decision line*, including on `CLEAR TO MERGE
 
 A review gate that depends on someone remembering to run it is not a gate. Two mechanisms make it one, and neither costs a Claude token.
 
-**The label check.** A single CI job on every PR to a protected branch fails unless the PR carries the `reviewed:five-a-side` label and its body contains a five-a-side report block. Seconds of runner time. It cannot verify the review was *good* — only that one happened and was recorded — and that is enough, because the failure mode being closed is not "bad review", it is **no review at 11pm on a hotfix**. Never make this job skippable for urgent changes; that is the case it exists for.
+**The label check.** A CI job on every change into a protected branch fails unless a review is recorded — the `reviewed:five-a-side` label plus a report block in the body. Seconds of runner time. It cannot verify the review was *good*, only that one happened.
+
+**Know which of the two it is, because they are not the same control:**
+
+- **Preventive** requires *required status checks* — a paid GitHub plan plus a branch-protection or ruleset rule. Only then does a red check actually stop a merge.
+- **Detective** is what you get otherwise. The check goes red, the merge proceeds, and the value is the record.
+
+Check before claiming either: `gh api repos/{owner}/{repo}/branches/{branch}/protection`. A `403 Upgrade to GitHub Pro` means every "this gate blocks X" sentence you write is false. That happened here — the gate was designed, documented and reviewed as preventive on a repo where it can only ever be detective, and the constraint was already written in the repo's own CI header.
+
+**Trigger on `push` as well as `pull_request`.** A `pull_request`-only gate never fires on a direct push to the protected branch, which is precisely the 11pm hotfix path it exists to catch. Where direct pushes are routine, a PR-only trigger means the gate is absent exactly when it matters.
+
+Never make the job skippable for urgent changes; that is the case it exists for.
 
 **The pack check.** A test asserting that every pack's `paths:` globs match at least one real file, and every link in a pack resolves. Packs are the entire quality ceiling of this system, and a pack citing a rule that has since been deleted produces a *cited*, confident, wrong finding — more persuasive than an uncited one, and harder to argue with. Nothing else stops that drift.
 
