@@ -17,7 +17,6 @@ Upstream description: A collection of [Claude Code](https://claude.com/claude-co
 | [`tdd`](tdd/SKILL.md) | Test-driven development with the red-green-refactor loop, plus references on mocking, interface design, deep modules, and refactoring. |
 | [`chunk-status`](chunk-status/SKILL.md) | Reconcile a project-plan chunk against reality — issues, merged PRs, deployed app — and propose plan-doc corrections. |
 | [`grill-me`](grill-me/SKILL.md) | Interview the user relentlessly about a plan or design until every branch of the decision tree is resolved. |
-| [`two-axis-review`](two-axis-review/SKILL.md) | **Deprecated** — superseded by `five-a-side`; hands off to it. Slated for deletion. |
 
 ## Installation
 
