@@ -11,7 +11,8 @@ You are the **orchestrator**. You coordinate subagents and keep your own token u
 
 - **Max 4 issues per run.** If more are requested, stop and ask the user to pick ≤4.
 - **You** (orchestrator) create one **persistent git worktree + branch per issue** with `git worktree add`, and reuse it across that issue's whole agent chain. Do NOT use the Agent tool's `isolation: "worktree"` — it gives each agent call a separate, ephemeral worktree, but the build/review/fix/PR agents for one issue must all act on the *same* branch.
-- Every issue goes through: **build → review cycle 1 → fix → review cycle 2 → fix → PR**, **up to 2 review cycles**. If any review returns "NO BLOCKING ISSUES", skip the remaining cycle(s) and go straight to PR.
+- Every issue goes through: **build → review cycle 1 → fix → review cycle 2 → fix → PR**, **up to 2 review cycles**. If any review returns `CLEAR TO MERGE`, skip the remaining cycle(s) and go straight to PR.
+- **The review stage is the /five-a-side skill.** Do not write your own review prompt — the five roles, their blocking scopes and the repo's rule packs live there, and a hand-rolled reviewer silently bypasses all of it.
 - Builders implement with the **/tdd** skill (red-green-refactor). They do not skip tests.
 - **Never push or open a PR until both review cycles pass** for that issue.
 - **PRs always target the default branch — never another issue's branch.** Build a dependent issue's worktree *on* its dependency's branch (so the code compiles and tests), but open its PR against the default branch with a "merge after #X" note. Stacking a PR onto another open PR's branch gets it **auto-closed** when that branch is deleted at merge (observed failure mode).
@@ -55,13 +56,22 @@ git worktree add -b issue-<N>-<slug> <path>/issue-<N> <base>
 
 **b. Review cycle (run twice).** Each cycle = review agent, then fix agent.
 
-- **Review agent** — `agentType` general-purpose (or `code-reviewer` if available). Prompt:
-  > Work inside the worktree at `<path>/issue-<N>` (already bootstrapped). Adversarially review the committed changes on this branch against the spec in `gh issue view <N>`. Try to break it: missed requirements, edge cases, incorrect logic, missing/weak tests, security and error handling. Review test **economy** with the same rigor as test coverage — both directions are findings: a **redundant test** (re-proves a rule an existing or unit-tier test already owns, duplicates a sibling, or pays DB/HTTP-tier fixture cost that a lower tier or a shared-seed case would avoid — cite the covering test) is as much a finding as a missing one; follow the repo's testing conventions doc if one exists. Run the **tests and the typecheck/lint** — a failing typecheck or lint is itself a blocking finding. Return ONLY a numbered list of concrete findings (file:line, severity, what's wrong, suggested fix), or "NO BLOCKING ISSUES".
+- **Review** — invoke the **/five-a-side** skill; it *is* the review stage. Do not hand-roll a review agent. Pass it:
+  - fixed point `origin/<default>`, and the worktree at `<path>/issue-<N>` (already bootstrapped) as the working directory
+  - `<N>` as the spec source
+  - `<scratch>/issue-<N>/cycle-<1|2>` as its scratch dir
+  - `hotfix: true` if the issue carries a `hotfix` label or the PR will target `main` on a repo whose routine work targets `staging` — this makes all five reviewers play regardless of path triggers
+
+  It returns the blocking findings plus one decision line: `CLEAR TO MERGE`, `BLOCKED — n …`, or `INCOMPLETE — <role> did not report`. The full report lands at `<scratch>/issue-<N>/cycle-<n>/five-a-side/report.md` for the PR body.
+
+  A failing typecheck or lint is a blocking finding — five-a-side's `standards` and `prover` roles run them.
 
 - **Fix agent** — same worktree path. Prompt:
   > Work inside the worktree at `<path>/issue-<N>`. Address every finding below, using /tdd for any behavior change (write/adjust the failing test first). Findings:\n<paste review findings>\nCommit fixes. Return ONLY: per-finding resolved/won't-fix+why, and test pass/fail.
 
-  If the review returned "NO BLOCKING ISSUES", skip the fix agent **and** the remaining cycle — jump straight to the PR agent.
+  If the review returned `CLEAR TO MERGE`, skip the fix agent **and** the remaining cycle — jump straight to the PR agent.
+
+  **`INCOMPLETE` is not a pass.** If a reviewer did not report, re-run five-a-side for that cycle once. If it comes back `INCOMPLETE` again, stop that issue and record it as FAILED — do **not** open its PR. An unreviewed axis is exactly the gap this stage exists to close, and "the agent went idle" is an observed failure mode, not a hypothetical.
 
   **Adjudicate won't-fix.** If the fix agent marks any **blocking/high-severity** finding as won't-fix, do not open the PR on autopilot — surface those items to the user and let them decide (accept / push back for another fix attempt / drop the issue). Low-severity won't-fix items can carry through to the PR body and final report.
 
