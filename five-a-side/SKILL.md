@@ -69,7 +69,7 @@ Every change landing on a **protected branch** gets reviewed — in this org tha
 - It was written under time pressure, which is when the guards get skipped.
 - It skips `staging`, so it loses the one environment that would have caught it.
 
-Urgency is the argument for **more** review, not less. The path triggers in step 3 are an optimisation for routine work; a hotfix withdraws the optimisation. If someone wants to ship without the squad, that is a decision they take explicitly and on the record — not a default the skill hands them.
+Urgency is the argument for **more** review, not less. The path triggers in step 4 are an optimisation for routine work; a hotfix withdraws the optimisation. If someone wants to ship without the squad, that is a decision they take explicitly and on the record — not a default the skill hands them.
 
 ## Workflow
 
@@ -80,19 +80,43 @@ Whatever the user supplied — a SHA, branch, tag, `main`, `HEAD~5`. If they gav
 ```
 git rev-parse <fixed-point>                     # must resolve
 git diff --stat <fixed-point>...HEAD            # must be non-empty
-git diff --name-only <fixed-point>...HEAD       # the path list, for step 2
+git diff --name-only <fixed-point>...HEAD       # the path list, for steps 2 and 3
 git log <fixed-point>..HEAD --oneline
 ```
 
 Three-dot, so the comparison is against the merge-base. A bad ref or empty diff fails **here** — not inside five parallel subagents.
 
-### 2. Select packs from the changed paths
+### 2. Gather what the diff cannot show
+
+A diff shows what changed, never what already exists. Without this step no reviewer can tell you this is the fourth implementation of the same thing, that a route is now unreachable, or that someone merged the same feature last week — the whole class of finding that is invisible from the change alone.
+
+This is **cheap shell, not an agent**. Run it yourself and pass the result into the fan-out:
+
+```
+# What landed recently near these files — the overlap the dependency graph never shows
+git log <fixed-point> --oneline -15 --  <changed paths>
+gh pr list --state merged --limit 15 --json number,title,mergedAt -q '.[] | "#\(.number) \(.title)"'
+
+# Who else depends on what changed, so a "small" edit's real radius is visible
+grep -rl "<each changed module's export or path>" --include=*.{ts,tsx,js,py} . | head -20
+
+# How settled each changed file is: brand new, or load-bearing for a year
+git log --oneline -3 -- <each changed file>
+```
+
+Summarise into a short block — recent overlapping work, who imports the changed modules, which files are new versus long-lived. Keep it under ~15 lines; this is orientation, not a second diff.
+
+Give it to **`standards`** (it makes Duplicated Code and Shotgun Surgery visible instead of theoretical) and **`spec`** (scope creep and "this already exists" are only judgeable against what already exists). The other roles reason about the change itself and do not need it.
+
+If the repo is not a git checkout, or `gh` is unavailable, say so in the report and continue — degraded, not blocked.
+
+### 3. Select packs from the changed paths
 
 Read `.claude/five-a-side/packs/*.md` in the repo under review. Each pack declares `paths:` globs in its frontmatter. A pack is **matched** if any changed path matches any of its globs. Read only the matched packs.
 
 If the repo has **no packs directory**, say so in the report and run with `CLAUDE.md` plus whatever it links as the only rule source — degraded, but honest. Do not invent packs.
 
-### 3. Name the team sheet
+### 4. Name the team sheet
 
 - `standards` and `spec` **always play**.
 - `prover` plays whenever the diff changes behaviour (any non-docs code change).
@@ -104,13 +128,14 @@ If the repo has **no packs directory**, say so in the report and run with `CLAUD
 
 Announce the team sheet before fanning out: which roles play, which packs matched, and why anyone is benched. A benched reviewer is a deliberate decision the user can overrule.
 
-### 4. Fan out
+### 5. Fan out
 
 One message, one `Agent` call per playing role, `agentType` general-purpose. Each prompt contains:
 
 - The diff and log commands from step 1 (the **commands**, not the diff text — the subagent runs them itself).
 - The full text of `references/<role>.md`.
 - The `## <role>` sections of every matched pack, pasted in full. The subagent has no other access to them.
+- **For `standards` and `spec` only**: the repo-context block from step 2.
 - The spec source for `spec` (issue number to `gh issue view`, or a path).
 - **Its output path**: `<scratch>/five-a-side/<role>.md`. **`<scratch>` must be outside the repo working tree.** Reports written inside it are picked up by repo-wide formatters and linters — `prettier --check .` and friends do not care that a file is untracked — so the first commit after a review fails on the review's own artifacts.
 
@@ -129,7 +154,7 @@ Every prompt ends with the findings contract:
 >
 > `block` only for the scope your brief declares blocking; everything else is `note`. If you had more than 5, end the file with `dropped: n more (x block, y note)`. If you find nothing, write `NO FINDINGS` to the file. Never write an empty file.
 
-### 5. Team-sheet check
+### 6. Team-sheet check
 
 After the fan-out, list `<scratch>/five-a-side/`. For every role that played:
 
@@ -139,7 +164,7 @@ After the fan-out, list `<scratch>/five-a-side/`. For every role that played:
 
 If two or more roles fail the retry, abandon the fan-out and **run the remaining roles serially** — a fan-out that flaky is not going to improve on a third parallel attempt.
 
-### 6. Challenge the blocking findings
+### 7. Challenge the blocking findings
 
 **Deduplicate first.** Several reviewers reaching the same underlying defect from different briefs is the system working — but it is one claim, not four, and challenging it four times wastes the pass and produces four verdicts on one line of code. Collapse blocking findings that name the same root cause into a single claim, listing which roles reached it. **Independent convergence is evidence: say so in the report, and give the merged claim one challenge, not none.**
 
@@ -162,7 +187,7 @@ Accept that failing safe has a cost — an unchallenged weak finding stays at `b
 
 `REFUTED` findings are demoted to `note` with the refutation attached, not deleted — the user still sees them and can disagree. This costs one cheap agent per distinct blocker and is what stops plausible-but-wrong findings reaching the user.
 
-### 7. Wenger's report
+### 8. Wenger's report
 
 ```
 ## Team sheet
@@ -237,7 +262,7 @@ Never make the job skippable for urgent changes; that is the case it exists for.
 State these when someone asks how much to trust a clean run:
 
 - **Same model on both sides.** Builder and reviewers are separate agents, but one model with one set of blind spots. Five roles produce five prompts over one prior, not five independent judgements. The model-diverse refute pass narrows this at one point; it does not remove it.
-- **Diff-scoped.** Nobody sees that this is the fourth implementation of the same thing, that a route is now unreachable, or that it duplicates what merged last week. Pair with `implement-issues`' pre-flight overlap scan, which exists for exactly this.
+- **Diff-scoped, partially.** Step 2 hands `standards` and `spec` the surrounding context, which covers recent overlapping work and the changed modules' dependents. What it still will not catch is architectural drift with no textual trace — a pattern quietly abandoned, a boundary eroded over months. Those need a human or a deliberate audit, not a diff review.
 - **Packs are the ceiling.** Every reviewer is exactly as good as the rules it was handed. An unwritten rule is an unreviewable one.
 - **Agents go silent.** Observed across two trial runs: reviewers and challengers both sometimes finish without returning anything, and not uniformly across models. Every stage therefore has an explicit rule for absence — `DID NOT REPORT` in the fan-out, `unchallenged` in the refute pass — and neither ever reads as approval. If a run reports neither, the orchestrator skipped a check.
 - **Convergence can be correlated.** Roles sharing a model can reach the same wrong conclusion and look like corroboration. Cross-model challenge is what distinguishes agreement from a shared blind spot; a finding confirmed only by same-model roles is weaker than its vote count suggests.
