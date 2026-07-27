@@ -14,7 +14,10 @@ Five reviewers, one question each. The **roles are fixed**; the **domain is a va
 | `adversary` | **Rice** | Can it be broken? | Anything exploitable |
 | `operator` | **Raya** | Can I see it fail, and can I undo it? | Unrecoverable or invisible failure |
 | `prover` | **Henry** | Do the tests go red when the code is wrong? | Behaviour change no test catches |
+| `steward` | **Mertesacker** | *Substitute.* Were we allowed to do this to a user? | Consent, retention, exclusion, false promises |
 | — | **Wenger** | The Gaffer: names the team sheet, calls the decision | Nothing — reports, never reranks |
+
+**Why a substitute and not a sixth starter.** The five own engineering correctness. `steward` owns duty of care to a real person using a real product — lawful basis, consent, data minimisation, accessibility as exclusion, and copy that makes a commercial promise. None of those are security (a consent defect is not an exploit), none are spec (the issue rarely mentions them), and on most diffs there is nothing for him to do. So he sits on the bench and comes on for the diffs that touch a user. Five on the pitch.
 
 **Roles are canonical, names are display.** Every file, key, finding prefix and trigger uses the role slug. A maintainer must never need to know who Raya is to work out what that reviewer checks.
 
@@ -23,7 +26,7 @@ Five reviewers, one question each. The **roles are fixed**; the **domain is a va
 - **A reviewer that does not report is not a pass.** Its outcome is `DID NOT REPORT`, the run is `INCOMPLETE`, and the decision is never `CLEAR`. This exists because a previous five-agent fan-out spawned, went idle, and returned nothing — silence read as approval would have shipped unreviewed code.
 - **Never merge or rerank findings across roles.** Report each role separately. A role's finding is not downgraded because another role disagrees; the axes are separate so one cannot mask another.
 - **A reviewer may only block inside its declared scope.** Out-of-scope observations are `note`, never `block`. Ødegaard does not block on security; Rice does not block on naming.
-- **Max 5 findings per reviewer.** More than that is a review nobody reads. Report the five that matter and say how many were dropped.
+- **Max 5 findings per reviewer — and truncation must be declared.** More than five is a review nobody reads. Report the five that matter, then state how many were dropped and at what severities (`dropped: 3 more (1 block, 2 note)`). A silent cap reads as "that was everything", which is the one thing it must never mean.
 - **Packs are the repo's rules, not yours.** Never invent a standard. If it is not in a pack, in `CLAUDE.md`, or in a doc either links to, it is at most a `note`.
 - **Skip what tooling already enforces.** Lint, format and typecheck are CI's job. A reviewer spending a finding on something `ruff`/`eslint` catches has wasted it.
 - This skill **reviews**; it does not fix, commit, push or merge.
@@ -66,8 +69,9 @@ If the repo has **no packs directory**, say so in the report and run with `CLAUD
 - `standards` and `spec` **always play**.
 - `prover` plays whenever the diff changes behaviour (any non-docs code change).
 - `adversary` and `operator` play when a matched pack has a non-empty section for them.
-- **All five play, triggers ignored, when the change is a hotfix** — the branch targets `main` on a repo where routine work targets `staging`, the issue carries a `hotfix` label, or the caller says so. See *When it must run*.
-- `/five-a-side full` plays all five regardless of triggers.
+- `steward` comes off the bench when the diff touches **a user**, not merely a domain: PII collection or a new stored field about a person, consent capture or its defaults, retention or deletion, payments and pricing, messaging (WhatsApp/SMS/email), analytics properties, public-page accessibility, or user-facing copy that promises something. A matched pack's `steward` section also brings him on.
+- **Everyone plays, triggers ignored, when the change is a hotfix** — the branch targets `main` on a repo where routine work targets `staging`, the issue carries a `hotfix` label, or the caller says so. See *When it must run*.
+- `/five-a-side full` plays everyone regardless of triggers.
 - `spec` with no locatable issue/PRD still plays, and reports `no spec available` as its only finding.
 
 Announce the team sheet before fanning out: which roles play, which packs matched, and why anyone is benched. A benched reviewer is a deliberate decision the user can overrule.
@@ -93,7 +97,7 @@ Every prompt ends with the findings contract:
 >   cite: <the pack rule, doc line, or spec line this rests on>
 > ```
 >
-> `block` only for the scope your brief declares blocking; everything else is `note`. If you find nothing, write `NO FINDINGS` to the file. Never write an empty file.
+> `block` only for the scope your brief declares blocking; everything else is `note`. If you had more than 5, end the file with `dropped: n more (x block, y note)`. If you find nothing, write `NO FINDINGS` to the file. Never write an empty file.
 
 ### 5. Team-sheet check
 
@@ -109,7 +113,14 @@ If two or more roles fail the retry, abandon the fan-out and **run the remaining
 
 Only `block` findings, and only if there are any. One `Agent` call per blocking finding, prompted to **refute**:
 
-> Here is a review finding on this diff: `<finding>`. Your job is to refute it. Read the actual code at that location and the rule it cites. Return `REFUTED: <why>` if the finding is wrong, misreads the code, or rests on a rule that does not say what it claims — or `STANDS: <the one-line reason it is real>`. Default to `REFUTED` when genuinely uncertain.
+> Here is a review finding on this diff: `<finding>`. Your job is to refute it. Read the actual code at that location and the rule it cites. Return `REFUTED: <why>` if the finding is wrong, misreads the code, or rests on a rule that does not say what it claims — or `STANDS: <the one-line reason it is real>`. `<default-clause>`
+
+**The uncertainty default is not the same for every role.**
+
+- `adversary` and `steward` → *"When genuinely uncertain, return `STANDS`."* A false positive costs one argument. A suppressed exploit or an unlawful data capture costs a great deal more — and those are exactly the finding types where certainty is hardest to reach, so a REFUTED-on-doubt default systematically discards the most valuable findings the squad produces.
+- every other role → *"When genuinely uncertain, return `REFUTED`."*
+
+**Run the challenge on a different model from the one that produced the finding** (set `model` on the Agent call). A challenger sharing the reviewer's model shares its blind spots, so it mostly re-derives the original reasoning and agrees with itself. This is the one point in the pipeline where independence is worth paying for.
 
 `REFUTED` findings are demoted to `note` with the refutation attached, not deleted — the user still sees them and can disagree. This costs one cheap agent per blocker and is what stops plausible-but-wrong findings reaching the user.
 
@@ -145,6 +156,14 @@ One role per section, in the table's order. Then one decision line, exactly one 
 
 Do not pick a "worst finding overall". Report the worst *within each role* and stop there.
 
+**Human acknowledgement threshold.** When the diff touches **payments, authentication or authorisation, database migrations, outbound messaging, or legal/policy content**, append:
+
+```
+HUMAN ACK REQUIRED — <reason>. A named person must read this report before merge.
+```
+
+This is appended *regardless of the decision line*, including on `CLEAR TO MERGE`. These five areas are the ones where a mistake is expensive, slow to detect, and hard to reverse, and a clean automated review is not sufficient grounds to skip a person on them. The skill cannot enforce this — it states the requirement; the CI gate below is what makes it stick.
+
 ## Called by another skill
 
 `implement-issues` invokes this as its review gate. When called that way:
@@ -152,6 +171,22 @@ Do not pick a "worst finding overall". Report the worst *within each role* and s
 - The caller supplies the fixed point (the issue branch's merge-base), the worktree path, the issue number as the spec source, and its own scratch dir.
 - Return **only** the blocking findings plus the decision line — the caller feeds those to a fix agent and does not need the notes inline. Write the full report to `<scratch>/five-a-side/report.md` for the caller to attach to the PR body.
 - `INCOMPLETE` must propagate. A caller must not open a PR on a run where a role did not report.
+
+## Enforcement
+
+A review gate that depends on someone remembering to run it is not a gate. Two mechanisms make it one, and neither costs a Claude token.
+
+**The label check.** A single CI job on every PR to a protected branch fails unless the PR carries the `reviewed:five-a-side` label and its body contains a five-a-side report block. Seconds of runner time. It cannot verify the review was *good* — only that one happened and was recorded — and that is enough, because the failure mode being closed is not "bad review", it is **no review at 11pm on a hotfix**. Never make this job skippable for urgent changes; that is the case it exists for.
+
+**The pack check.** A test asserting that every pack's `paths:` globs match at least one real file, and every link in a pack resolves. Packs are the entire quality ceiling of this system, and a pack citing a rule that has since been deleted produces a *cited*, confident, wrong finding — more persuasive than an uncited one, and harder to argue with. Nothing else stops that drift.
+
+## Known limits
+
+State these when someone asks how much to trust a clean run:
+
+- **Same model on both sides.** Builder and reviewers are separate agents, but one model with one set of blind spots. Five roles produce five prompts over one prior, not five independent judgements. The model-diverse refute pass narrows this at one point; it does not remove it.
+- **Diff-scoped.** Nobody sees that this is the fourth implementation of the same thing, that a route is now unreachable, or that it duplicates what merged last week. Pair with `implement-issues`' pre-flight overlap scan, which exists for exactly this.
+- **Packs are the ceiling.** Every reviewer is exactly as good as the rules it was handed. An unwritten rule is an unreviewable one.
 
 ## Adding a repo
 

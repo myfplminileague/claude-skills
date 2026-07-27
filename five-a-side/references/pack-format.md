@@ -33,11 +33,14 @@ One paragraph: what this domain is and where its source of truth lives.
 
 ## prover
 - ...
+
+## steward
+- Omit unless this domain touches a real person's data, consent, money or accessibility.
 ```
 
 ## Rules for writing packs
 
-- **A section's presence is a trigger.** `adversary` and `operator` only play when a matched pack has a non-empty section for them. An empty or omitted section benches that reviewer — that is the intended way to keep a UI-only PR from being reviewed for rollback safety. Do not write a placeholder section to be polite.
+- **A section's presence is a trigger.** `adversary`, `operator` and `steward` only play when a matched pack has a non-empty section for them. An empty or omitted section benches that reviewer — that is the intended way to keep a UI-only PR from being reviewed for rollback safety. Do not write a placeholder section to be polite. (`steward` also has diff-content triggers of his own, listed in `SKILL.md`; a pack section is an additional way to bring him on, not the only one.)
 - **One rule per line, checkable against a diff.** "Never hardcode Tailwind colours — use the semantic tokens in `globals.css @theme`" is checkable. "Write clean components" is not, and will produce noise in every review forever.
 - **Link, don't restate.** If `docs/security/code-requirements.md` already says it, the pack line is a pointer plus the one-line summary. A pack that duplicates a doc will drift from it, and the reviewer will then cite a rule that no longer exists.
 - **Cite the incident where there is one.** A rule that carries "we had a nine-day silent outage because of this" gets weighted correctly by the reviewer and survives the next person who wants to delete it.
@@ -57,6 +60,9 @@ Not prescriptive — split by *whose rules they are*, not by directory:
 | `pipeline` | batch jobs, ingestion, scheduling, retries |
 | `ci-deploy` | workflows, deploy scripts, release process |
 | `content-legal` | vendored or generated prose, sync invariants |
+| `contracts` | cross-repo invariants — artifact shapes, which store owns which read, money maths |
+
+The `contracts` pack is the one most teams skip and most need. A reviewer sees one diff in one repo, so an agreement held between two repos is invisible to every role unless a pack states it. Write down the shape of anything one repo produces and another consumes, which store is allowed to serve which read, and any arithmetic whose correctness is defined elsewhere. Then require the finding to cite the other repo's definition, so a drift is caught by the side that broke it.
 
 ## Keeping packs honest
 

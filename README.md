@@ -12,7 +12,7 @@ Upstream description: A collection of [Claude Code](https://claude.com/claude-co
 | [`to-issues`](to-issues/SKILL.md) | Break a plan, spec or PRD into independently-grabbable issues using tracer-bullet vertical slices. |
 | [`next-batch`](next-batch/SKILL.md) | Triage front-end for `/implement-issues`: pick and prepare the next buildable batch of GitHub issues, check dependencies and in-flight work, and propose a build order. |
 | [`implement-issues`](implement-issues/SKILL.md) | Orchestrate end-to-end implementation of GitHub issues — dependency-ordered parallel builders (TDD), two `five-a-side` review-and-fix cycles, then one PR per issue. |
-| [`five-a-side`](five-a-side/SKILL.md) | The review gate. Five adversarial reviewers — standards, spec, adversary, operator, prover — each loading the repo's own rule packs, aggregated into one merge decision. |
+| [`five-a-side`](five-a-side/SKILL.md) | The review gate. Five adversarial reviewers — standards, spec, adversary, operator, prover — plus a `steward` substitute for anything touching a user, each loading the repo's own rule packs, aggregated into one merge decision. |
 | [`ship`](ship/SKILL.md) | Merge-and-deploy runbook for open PRs — watch CI, merge in dependency-safe order, run migrations, watch the deploy, smoke-check, then clean up branches. |
 | [`tdd`](tdd/SKILL.md) | Test-driven development with the red-green-refactor loop, plus references on mocking, interface design, deep modules, and refactoring. |
 | [`chunk-status`](chunk-status/SKILL.md) | Reconcile a project-plan chunk against reality — issues, merged PRs, deployed app — and propose plan-doc corrections. |
@@ -43,6 +43,7 @@ claude-skills/
 │       ├── adversary.md      # Rice     — authz, injection, secrets, PII, concurrency
 │       ├── operator.md       # Raya     — observability, rollback, blast radius
 │       ├── prover.md         # Henry    — mutation-test the assertions
+│       ├── steward.md        # Mertesacker — sub: consent, retention, a11y, promises
 │       └── pack-format.md    # how a repo writes its own rule packs
 ├── ship/SKILL.md
 └── tdd/
