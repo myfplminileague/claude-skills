@@ -38,13 +38,8 @@ const PRESERVE = ["README.md", "examples"];
 const SCRUB = [
   [
     "SKILL.md",
-    "Every change landing on a **protected branch** gets reviewed — in this org that is `staging` and `main` on the frontend, `main` on the backend. `staging` is not a lower bar: it is the first branch that actually deploys, so it is the first place a defect becomes real.",
-    "Every change landing on a **protected branch** gets reviewed. Where a repo has both an integration branch and a release branch, the integration branch is not a lower bar: it is the first branch that actually deploys, so it is the first place a defect becomes real.",
-  ],
-  [
-    "SKILL.md",
-    "- A hotfix targets `main`, so a bad one takes the live site down — the highest blast radius any change in this org has.",
-    "- A hotfix targets the release branch, so a bad one takes the live site down — the highest blast radius any change has.",
+    "- It goes straight to the release branch, so a bad one takes the live site down — the highest blast radius any change has.",
+    "- It goes straight to the release branch, so a bad one takes the live site down — the highest blast radius any change has.",
   ],
   [
     "references/adversary.md",
