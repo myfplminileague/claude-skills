@@ -61,15 +61,29 @@ If a named model is unavailable in the session, inherit the parent's model and s
 
 ## When it must run
 
-Every change landing on a **protected branch** gets reviewed — in this org that is `staging` and `main` on the frontend, `main` on the backend. `staging` is not a lower bar: it is the first branch that actually deploys, so it is the first place a defect becomes real.
+Review is required where a mistake is **expensive, slow to detect, or hard to reverse** — and nowhere else. This is the opposite of where this skill started, and the correction was expensive enough to be worth stating plainly.
 
-**A hotfix plays the full squad.** No path-based benching, no exceptions:
+The first version required a review on every change into a protected branch and exempted nothing. Within a day of real use it had blocked the first production promotion, and a colleague could not merge a single small fix. *"The workflow has become very restrictive… Every issue has become colossal."* That is the failure mode that gets a gate deleted rather than respected, and a deleted gate protects nothing at all.
 
-- A hotfix targets `main`, so a bad one takes the live site down — the highest blast radius any change in this org has.
+**Exempt by default, required by exception.** Three exemptions, each earned by blocking someone real:
+
+- **Promotions** from an integration branch to a release branch. Their commits were each reviewed on the way in; re-reviewing the aggregate re-reads reviewed work and finds nothing new.
+- **Bot pull requests** — version bumps, lockfile updates. No human wrote the diff, so there is no judgement for a reviewer to check. Their real risk is dependencies and secrets, which belong to `npm audit` and a secret scanner.
+- **Anything touching no risk path.** Measured on the eight PRs before the correction, five needed no review at all.
+
+**The risk set must come from incidents, not categories.** Write down the paths where you have actually been hurt — the deploy scripts that took the site down, the consent surface that leaked to real users, auth, personal-data writes, migrations, published legal text. Resist tidy taxonomies: the first draft of one such list omitted the exact file whose review had found five live defects.
+
+Keep the set short. Every entry is friction on every future change, so each one earns its place by naming somewhere a mistake was expensive.
+
+**A risky hotfix plays the full squad.** Where a hotfix touches a risk path, it withdraws the path-based benching that normally trims the team sheet:
+
+- It goes straight to the release branch, so a bad one takes the live site down — the highest blast radius any change has.
 - It was written under time pressure, which is when the guards get skipped.
-- It skips `staging`, so it loses the one environment that would have caught it.
+- It skips the integration branch, losing the one environment that would have caught it.
 
-Urgency is the argument for **more** review, not less. The path triggers in step 4 are an optimisation for routine work; a hotfix withdraws the optimisation. If someone wants to ship without the squad, that is a decision they take explicitly and on the record — not a default the skill hands them.
+Urgency is the argument for **more** review of a risky change, not less.
+
+But a hotfix that touches no risk path is still just a change — a copy fix on a live page is not made dangerous by the branch it lands on. The old rule here said "no exceptions", which combined with an always-on gate is exactly how this skill made a small fix impossible to ship. If the squad is genuinely in the way, override with a reason; that is on the record, which is all the rule was ever really buying.
 
 ## Workflow
 
@@ -245,7 +259,9 @@ The skill only states the requirement. For the marker to mean anything the gate 
 
 A review gate that depends on someone remembering to run it is not a gate. Two mechanisms make it one, and neither costs a Claude token.
 
-**The label check.** A CI job on every change into a protected branch fails unless a review is recorded — the `reviewed:five-a-side` label plus a report block in the body. Seconds of runner time. It cannot verify the review was *good*, only that one happened.
+**The label check.** A CI job that fails only when a **risky** change carries no recorded review — the label plus a report block in the body. Seconds of runner time. It cannot verify the review was *good*, only that one happened.
+
+**It must have an override, and the override must be advertised.** A gate a competent engineer cannot get past is a gate that gets ripped out of the workflow, and then nothing is checked at all. Require a written reason rather than a click: the bypass is then recorded instead of prevented, which is the honest trade. Say so *in the failure message* — someone blocked at 11pm should be told the legitimate way through, not left to conclude that deleting the workflow is the only exit.
 
 **Know which of the two it is, because they are not the same control:**
 
