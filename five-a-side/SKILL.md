@@ -31,33 +31,70 @@ Five reviewers, one question each. The **roles are fixed**; the **domain is a va
 - **Skip what tooling already enforces.** Lint, format and typecheck are CI's job. A reviewer spending a finding on something `ruff`/`eslint` catches has wasted it.
 - This skill **reviews**; it does not fix, commit, push or merge.
 
-## Model tiers
+## Models and effort
 
-Set `model` per `Agent` call. Tier by **what the role has to invent**, not by how important it sounds — a role reading rules off a good pack is doing lookup, a role that must imagine an attack nobody wrote down is doing the hard thing.
+Set `model` on every `Agent` call. Tier by **what the role has to invent**, not by how important it sounds — a role reading rules off a good pack is doing lookup, a role that must imagine an attack nobody wrote down is doing the hard thing.
 
-| Role | Tier | Why |
+**A tier that does not name a model is not a policy.** This section used to reason at length about "top" and "mid" without anywhere saying what either one *was*, and paired that with a closing line that inherited the caller's model when a name did not resolve. Since no name was ever given, that line was the only rule that ever fired: every role ran on whatever the session was running, which is the largest model available, while this document appeared to describe a considered allocation. Nobody chose it and nobody could see it. Name the models.
+
+| Tier | Model | Effort |
 | --- | --- | --- |
-| `adversary` | **top** | Has to invent the attack. In trial it chained a push to `staging` → auto-deploy → a prod rollback with a `../..` path to serve an attacker's tree from prod. Nothing in any pack described that. |
-| `operator` | **top** | Has to hold the whole failure surface at once and know what the shell actually does — e.g. that bash elides the fork for a lone simple command but not for a `cd && cmd` list, which is the entire probe-leak bug. |
-| `prover` | **top** | Choosing *which* mutation is worth making, and explaining why a survivor survived, is judgement. Its cost is mostly tool calls (it runs suites repeatedly), so a lower tier saves little and loses the insight. |
-| `standards` | **mid** | Mostly "does this line breach that written rule". The pack does the thinking; the model does the matching. |
-| `spec` | **mid** | A requirement-by-requirement walk. Escalate to **top** when there is no pack, or the spec is a long PRD with interacting acceptance criteria. |
-| `steward` | **mid** | Checklist-driven against the pack. Escalate to **top** for payments, consent defaults, or anything where the answer is "it depends". |
-| refute pass | **top**, and **never below the tier of the reviewer that produced the finding** | See below. |
+| **top** | `opus` | `high` |
+| **mid** | `sonnet` | `medium` |
+
+**The largest model in the family never reviews.** Not as a reviewer, not as a challenger, not as a fallback. Two reasons, and the second is the one that matters:
+
+- No role's brief demonstrably needs it. The work is bounded — read a diff, check it against a written rule, try to break it — and the two tiers cover it.
+- **It is the model that wrote the code.** Where builder and reviewer are the same model, the review re-derives the build's reasoning and agrees with itself. Excluding it is the cheapest model diversity this pipeline can buy, and it is the only change here that makes the reviews *better* rather than merely cheaper.
+
+**No role runs on the small model either.** There is no mechanical stage to give it: every agent here exercises judgement, and the one genuinely mechanical step — gathering repo context — is deliberately plain shell run by the orchestrator, not an agent at all. Putting the small model on a judgement stage to save pennies degrades the stage. The savings live in the team sheet and in effort, not in a cheaper reviewer. Written down so it is not re-litigated by the next person reading the bill.
+
+| Role | Tier | Effort | Why |
+| --- | --- | --- | --- |
+| `adversary` | **top** | `high` | Has to invent the attack. In trial it chained a push to `staging` → auto-deploy → a prod rollback with a `../..` path to serve an attacker's tree from prod. Nothing in any pack described that. |
+| `operator` | **top** | `high` | Has to hold the whole failure surface at once and know what the shell actually does — e.g. that bash elides the fork for a lone simple command but not for a `cd && cmd` list, which is the entire probe-leak bug. |
+| `prover` | **top** | `medium` | Choosing *which* mutation is worth making is judgement, so it keeps the tier. But its cost is overwhelmingly tool calls — it runs suites repeatedly — and "mutate it, run it, look at the colour" is not a reasoning-heavy loop. Effort is the one dial here that is safe to turn down. |
+| `standards` | **mid** | `medium` | Mostly "does this line breach that written rule". The pack does the thinking; the model does the matching. |
+| `spec` | **mid** | `medium` | A requirement-by-requirement walk. Escalate to **top** when there is no pack, or the spec is a long PRD with interacting acceptance criteria. |
+| `steward` | **mid** | `medium` | Checklist-driven against the pack. Escalate to **top** for payments, consent defaults, or anything where the answer is "it depends". |
+| challenger | **mid** | `high` | May not share the producing model, which under this policy usually puts it a tier below the finding it is challenging. High effort is the compensation, and *Challenge the blocking findings* carries the rest. |
+
+**Effort is set on the agent definition, not on the call.** `Agent` takes `model` but has no effort parameter. A repo that wants per-role effort ships `.claude/agents/five-a-side-<role>.md` with `effort:` in the frontmatter and a `tools:` list — read-only for every role except `prover`, which mutates by design. The skill still passes `model` at call time, which takes precedence over the definition's own. **A definition's `model:` must name the cheap tier**, so a call that forgets to pass one fails cheap rather than expensive. Where a repo ships no definitions, the roles run at the session's effort with only the model pinned: degraded, not broken, and worth a line in the report.
 
 **Do not economise on the refute pass.** It is the only stage that *removes* findings. The failure modes are not symmetric: a weak finder misses something, which shows up as a thin report someone can notice; a weak refuter deletes something already found, and nobody ever learns it existed. Combined with the split uncertainty defaults, a cheap refuter is the single most effective way to make this system quietly worse while it appears to be working. It must also differ from the producing reviewer's model — same model, same blind spot, so it re-derives the original reasoning and agrees with itself.
+
+**Fallbacks go down, and say so.** If a named model is unavailable in the session, drop one tier and record it in the report beside that role. **Never inherit the caller's model.** The caller is usually running the excluded model, so "inherit" resolves to the one model this policy exists to keep out — silently, and at the moment nobody is looking. That is not a hypothetical; it is what the previous version of this section did.
 
 **Escalation rules.**
 
 - **Hotfix → every role on top tier.** Same argument as the full squad: highest blast radius, least time, no staging net.
 - **A mid-tier role that reports `dropped: n more` was saturated.** Re-run that one role at top tier before trusting its five. Truncation is the signal that the cheap tier hit its ceiling.
-- **No pack matched → top tier for everyone.** Mid tier is only justified when a pack is carrying the reasoning; with no pack the model is doing it unaided.
+- **No pack matched → top tier for everyone.** Mid tier is only justified when a pack is carrying the reasoning; with no pack the model is doing it unaided. **This rule is a bill, and writing the pack is how you stop paying it** — the paths with no pack tend to be the risky ones that get reviewed most often, so the escalation lands precisely where the volume is.
 
 **Where the real saving is.** Model tier is the smaller lever. The team sheet is the bigger one — a typical UI diff plays three roles, not six, and that halves the run regardless of tier. Tune the pack globs before tuning the models.
 
-**Depth.** Default is the deep run: full tiers, refute pass on. `/five-a-side quick` drops every role to mid tier and **skips the refute pass** — findings come through unfiltered, so a quick run is noisier, never quieter. That is the correct trade for a work-in-progress sanity check, and it is not acceptable on a PR.
+## Depth
 
-If a named model is unavailable in the session, inherit the parent's model and say so in the report rather than silently downgrading.
+Three modes. The distinction that matters is not the tier — it is **whether the refute pass runs**, because that is the only stage that removes a finding before someone acts on it.
+
+| Mode | Reviewer tier | Refute pass | Use for |
+| --- | --- | --- | --- |
+| `deep` | per the role table | **on** | risk paths, hotfixes, any second review cycle |
+| `standard` | all roles **mid** | **on** | the default — ordinary diffs, first review cycles |
+| `quick` | all roles **mid** | **off** | interactive work-in-progress, watched by a human |
+
+**The refute pass is mandatory wherever findings reach anything but a human reading them.** Skipping it is safe in exactly one situation: a person is sitting there and can discard a wrong finding by eye. The moment findings feed an automated fixer, a PR body, or a merge decision, an unrefuted false positive stops being noise and becomes work — and with a TDD fixer downstream, it becomes *a test written to enshrine a defect that was never there*. So `quick` is forbidden on a PR and forbidden whenever this skill is called by another skill.
+
+A quick run is noisier, never quieter. That is the right trade for a sanity check and the wrong one for a gate.
+
+**Choosing the mode** — invoked as `/five-a-side <mode>`, or resolved in this order, first match winning:
+
+1. An explicit mode from the user or the calling skill. A caller asking for `quick` gets `standard`.
+2. **Hotfix → `deep`.** Highest blast radius, least time, no staging net.
+3. **`adversary`, `operator` or `steward` on the team sheet → `deep`.** Those three only come on when a matched pack has a section for them or the diff touches a user, so their presence is the run's own evidence that this is not an ordinary change. It costs nothing to evaluate — step 4 already worked it out — and it means the expensive mode is chosen by the same signal that picks the squad, rather than by a second copy of the repo's risk list kept somewhere else and free to drift from the first.
+4. Otherwise `standard`.
+
+Whatever it resolves to, the report says so. Someone who thinks a change deserved more than it got can then ask for it, which is only possible if the mode is on the page.
 
 ## When it must run
 
@@ -141,13 +178,13 @@ If the repo has **no packs directory**, say so in the report and run with `CLAUD
 - `steward` comes off the bench when the diff touches **a user**, not merely a domain: PII collection or a new stored field about a person, consent capture or its defaults, retention or deletion, payments and pricing, messaging (WhatsApp/SMS/email), analytics properties, public-page accessibility, or user-facing copy that promises something. A matched pack's `steward` section also brings him on.
 - **Everyone plays, triggers ignored, when the change is a hotfix** — the branch targets `main` on a repo where routine work targets `staging`, the issue carries a `hotfix` label, or the caller says so. See *When it must run*.
 - `/five-a-side full` plays everyone regardless of triggers.
-- `spec` with no locatable issue/PRD still plays, and reports `no spec available` as its only finding.
+- **`spec` is benched when there is no spec.** If no issue, PRD or design doc can be located, record that on the team sheet and do not spawn it. An agent whose only possible finding is `no spec available` spends a full model call telling you something the orchestrator already knew before it fanned out. The information is not lost — benched-for-no-spec is itself the finding, and on a change that should have had an issue it is one worth reading.
 
-Announce the team sheet before fanning out: which roles play, which packs matched, and why anyone is benched. A benched reviewer is a deliberate decision the user can overrule.
+Announce the team sheet before fanning out: the depth mode, which roles play, which packs matched, and why anyone is benched. A benched reviewer is a deliberate decision the user can overrule.
 
 ### 5. Fan out
 
-One message, one `Agent` call per playing role, `agentType` general-purpose. Each prompt contains:
+One message, one `Agent` call per playing role — `agentType` `five-a-side-<role>` where the repo defines one (see *Models and effort*), otherwise `general-purpose`. Each prompt contains:
 
 - The diff and log commands from step 1 (the **commands**, not the diff text — the subagent runs them itself).
 - The full text of `references/<role>.md`.
@@ -156,7 +193,11 @@ One message, one `Agent` call per playing role, `agentType` general-purpose. Eac
 - The spec source for `spec` (issue number to `gh issue view`, or a path).
 - **Its output path**: `<scratch>/five-a-side/<role>.md`. **`<scratch>` must be outside the repo working tree.** Reports written inside it are picked up by repo-wide formatters and linters — `prettier --check .` and friends do not care that a file is untracked — so the first commit after a review fails on the review's own artifacts.
 
-Set `model` on each call per *Model tiers* above, and record the tier each role ran at — the report must state it, because a finding's absence means something different at mid tier than at top.
+**Isolate `prover`, when the work under review is committed.** It is the only reviewer that writes: its protocol is mutate → run the suite → revert, in the same tree the other four are reading. Two things go wrong there. Another reviewer reads a file mid-mutation and reports, confidently and with a line number, on code that never existed. Or the prover goes idle between the mutation and the revert — an observed failure mode, see *Known limits* — and leaves deliberately broken code in a branch someone is about to push, with nothing in the report to say so. Passing `isolation: "worktree"` on that one call makes both impossible and stops the revert step being load-bearing. It costs one dependency bootstrap per run, which is the price of the only role that writes.
+
+**But not for uncommitted work.** A fresh worktree checks out the branch, not the caller's unsaved edits, so an isolated prover on a work-in-progress diff would faithfully mutate and test the wrong code — a worse failure than the one the isolation prevents. When the diff under review is uncommitted, run `prover` in place, tell the user their working tree will be mutated and restored, and treat the `git status` check in step 6 as a hard gate rather than a courtesy.
+
+Set `model` on each call per *Models and effort* above, and record the model and effort each role actually ran at — the report must state them, because a finding's absence means something different at `sonnet`/`medium` than at `opus`/`high`.
 
 Every prompt ends with the findings contract:
 
@@ -181,6 +222,8 @@ After the fan-out, list `<scratch>/five-a-side/`. For every role that played:
 
 If two or more roles fail the retry, abandon the fan-out and **run the remaining roles serially** — a fan-out that flaky is not going to improve on a third parallel attempt.
 
+**Then check the tree, if `prover` ran un-isolated.** Run `git status --porcelain` yourself; do not take the agent's word for it. A surviving mutation is the one review artifact that can damage the thing being reviewed, and the role most likely to leave one is the role that also sometimes dies mid-protocol. If the tree is dirty in a way the diff does not explain, say so at the top of the report, name the files, and do not describe the run as complete.
+
 ### 7. Challenge the blocking findings
 
 **Deduplicate first.** Several reviewers reaching the same underlying defect from different briefs is the system working — but it is one claim, not four, and challenging it four times wastes the pass and produces four verdicts on one line of code. Collapse blocking findings that name the same root cause into a single claim, listing which roles reached it. **Independent convergence is evidence: say so in the report, and give the merged claim one challenge, not none.**
@@ -194,7 +237,13 @@ Then one `Agent` call per **distinct** blocking claim, prompted to **refute**:
 - `adversary` and `steward` → *"When genuinely uncertain, return `STANDS`."* A false positive costs one argument. A suppressed exploit or an unlawful data capture costs a great deal more — and those are exactly the finding types where certainty is hardest to reach, so a REFUTED-on-doubt default systematically discards the most valuable findings the squad produces.
 - every other role → *"When genuinely uncertain, return `REFUTED`."*
 
-**Run the challenge on a different model from the one that produced the finding** (set `model` on the Agent call). A challenger sharing the reviewer's model shares its blind spots, so it mostly re-derives the original reasoning and agrees with itself. This is the one point in the pipeline where independence is worth paying for.
+**And it is not the same at every tier.** Run the challenge on a different model from the one that produced the finding (set `model` on the `Agent` call) — a challenger sharing the reviewer's model shares its blind spots, re-derives the original reasoning and agrees with itself. But with the largest model excluded from review, "different from the producer" and "at least the producer's tier" cannot both hold for a top-tier finding: the only remaining choice is a tier down. Independence is the more valuable of the two, so take it, and pay for the weaker challenger explicitly:
+
+> **A challenger running below the producer's tier defaults to `STANDS`, whatever the role.**
+
+Which gives one rule covering both halves: **return `STANDS` on doubt unless the challenger is at least the producer's tier *and* the producing role is neither `adversary` nor `steward`.** Everything else defaults to `REFUTED`.
+
+Note where this lands. On a hotfix every role plays at top tier, so every challenge is a tier down and every uncertain verdict keeps its finding — more surviving findings reach a human on exactly the changes that had the least margin for error. That is the intended direction, not an accident of the model policy.
 
 **A third verdict: `STANDS — FIX WRONG`.** Refutation is not binary. A challenger may confirm the defect while establishing that the proposed remedy is wrong — the wrong file, the wrong repo, a mitigation that already exists elsewhere. Observed: a finding correctly identified a stale published policy but sent the fix to a repo whose sync pipeline is not built yet. Record the correction alongside the finding; a right diagnosis with a wrong prescription still wastes someone's afternoon.
 
@@ -208,9 +257,10 @@ Accept that failing safe has a cost — an unchallenged weak finding stays at `b
 
 ```
 ## Team sheet
-Played: standards (mid), spec (mid), prover (top)
-Benched: adversary, operator, steward (no matching pack section)
-Packs:  design-system, frontend-app
+Mode:    standard
+Played:  standards (sonnet/medium), spec (sonnet/medium), prover (opus/medium)
+Benched: adversary, operator (no matching pack section), steward (touches no user)
+Packs:   design-system, frontend-app
 
 ## Ødegaard — Standards
 [standards] block src/components/prize-card.tsx:34 — hardcoded Tailwind colour
@@ -228,6 +278,8 @@ NO FINDINGS
 ## Decision
 BLOCKED — 1 blocking finding (standards). 3 notes.
 ```
+
+**Name the actual model and effort, never the tier alias.** Three things depend on it: a reader weighing what a role's silence is worth, anyone auditing whether a fallback quietly downgraded a role mid-run, and the only per-run record of what the review cost. `mid` tells you none of that; `sonnet/medium` tells you all three. Where the repo ships no agent definitions and effort was the session's, write `sonnet/session` rather than inventing a number.
 
 One role per section, in the table's order. Then one decision line, exactly one of:
 
@@ -251,7 +303,8 @@ The skill only states the requirement. For the marker to mean anything the gate 
 
 `implement-issues` invokes this as its review gate. When called that way:
 
-- The caller supplies the fixed point (the issue branch's merge-base), the worktree path, the issue number as the spec source, and its own scratch dir.
+- The caller supplies the fixed point (the issue branch's merge-base), the worktree path, the issue number as the spec source, its own scratch dir, and **the depth mode**.
+- **`quick` is not available to a caller** — its findings go to a fix agent, not to a human's eyes, and that is the one thing the refute pass may never be skipped for. A caller asking for `quick` gets `standard`, and the report says so. The caller stays free to choose between `standard` and `deep`, which is where it belongs: the caller knows whether this is a first pass or the last gate before a PR.
 - Return **only** the blocking findings plus the decision line — the caller feeds those to a fix agent and does not need the notes inline. Write the full report to `<scratch>/five-a-side/report.md` for the caller to attach to the PR body.
 - `INCOMPLETE` must propagate. A caller must not open a PR on a run where a role did not report.
 
@@ -280,7 +333,7 @@ Never make the job skippable for urgent changes; that is the case it exists for.
 
 State these when someone asks how much to trust a clean run:
 
-- **Same model on both sides.** Builder and reviewers are separate agents, but one model with one set of blind spots. Five roles produce five prompts over one prior, not five independent judgements. The model-diverse refute pass narrows this at one point; it does not remove it.
+- **A partly-shared prior.** Builder and reviewers are separate agents, and since *Models and effort* excludes the largest model — the one that usually writes the code — they are no longer the same model either. That much is now real diversity rather than a caveat, and it is the strongest argument for the exclusion: it was adopted to cut cost and happens to also cut correlated blind spots. What remains is still substantial. The reviewers share a family and a training lineage with the builder, and five roles on one model produce five prompts over one prior, not five independent judgements. The cross-model refute pass narrows it further at one point. Nothing here removes it.
 - **Diff-scoped, partially.** Step 2 hands `standards` and `spec` the surrounding context, which covers recent overlapping work and the changed modules' dependents. What it still will not catch is architectural drift with no textual trace — a pattern quietly abandoned, a boundary eroded over months. Those need a human or a deliberate audit, not a diff review.
 - **Packs are the ceiling.** Every reviewer is exactly as good as the rules it was handed. An unwritten rule is an unreviewable one.
 - **Agents go silent.** Observed across two trial runs: reviewers and challengers both sometimes finish without returning anything, and not uniformly across models. Every stage therefore has an explicit rule for absence — `DID NOT REPORT` in the fan-out, `unchallenged` in the refute pass — and neither ever reads as approval. If a run reports neither, the orchestrator skipped a check.
@@ -289,3 +342,5 @@ State these when someone asks how much to trust a clean run:
 ## Adding a repo
 
 Nothing in this skill is repo-specific, so onboarding a repo is only: write `.claude/five-a-side/packs/*.md` for its domains. See [`references/pack-format.md`](references/pack-format.md). The five roles do not change; the rules they read do.
+
+Optionally, add `.claude/agents/five-a-side-<role>.md` definitions to pin each role's reasoning effort and tool set — see *Models and effort*. Without them the model is still pinned and the review still runs, so this is a refinement, not a prerequisite. Note that these live outside the skill directory, so a repo that checks its vendored copy against a hash must extend that check to cover them, or it has a drift fence with a hole next to it.

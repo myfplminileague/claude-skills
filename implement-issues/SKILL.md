@@ -61,6 +61,7 @@ git worktree add -b issue-<N>-<slug> <path>/issue-<N> <base>
   - `<N>` as the spec source
   - `<scratch>/issue-<N>/cycle-<1|2>` as its scratch dir
   - `hotfix: true` if the issue carries a `hotfix` label or the PR will target `main` on a repo whose routine work targets `staging` — this makes all five reviewers play regardless of path triggers
+  - **the depth mode: `standard` for cycle 1, `deep` for cycle 2.** Cycle 1 is a first pass whose findings you are about to hand to a fix agent anyway; cycle 2 is the last thing between this code and a PR, so it gets the full tiers. Never pass `quick` — its findings go straight to a TDD fix agent, and an unrefuted false positive there does not get discarded, it gets a test written around it.
 
   It returns the blocking findings plus one decision line: `CLEAR TO MERGE`, `BLOCKED — n …`, or `INCOMPLETE — <role> did not report`. The full report lands at `<scratch>/issue-<N>/cycle-<n>/five-a-side/report.md` for the PR body.
 
