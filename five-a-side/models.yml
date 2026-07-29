@@ -1,0 +1,94 @@
+# The model and effort policy, in the one form a consumer can read.
+#
+# WHY THIS FILE EXISTS. The policy was prose, so every consuming repo that
+# wanted to enforce it had to restate it — the table here, six agent
+# frontmatters there, two constants in a test file. Three hand-maintained
+# copies of one policy, and nothing making them move together: a re-vendor that
+# changed the table landed green while the definitions silently implemented the
+# old allocation. Prose is for the human; this file is for the check.
+#
+# THIS FILE IS AUTHORITATIVE. The table under *Models and effort* in SKILL.md
+# is commentary on it and carries the reasoning, which is why it stays. Where
+# the two disagree, this file wins and the table is a bug. A consuming repo
+# with a test suite should assert they agree — that is the only thing that
+# keeps the commentary honest, and this repo has no tests of its own.
+
+# What a tier resolves to. Two tiers, deliberately.
+tiers:
+  top:
+    model: opus
+    effort: high
+  mid:
+    model: sonnet
+    effort: medium
+
+# What an agent definition's OWN `model:` must name. It is a floor that applies
+# only when a caller forgets to pass one, so it names the cheap tier: a
+# forgotten override should fail cheap rather than expensive.
+floor: sonnet
+
+# Never selectable — not as a reviewer, a challenger, or a fallback.
+#   fable   — the largest model, and usually the one that wrote the code under
+#             review; excluding it buys builder/reviewer diversity.
+#   haiku   — no mechanical stage exists to give it; every agent here judges.
+#   inherit — resolves to the caller's model, which is normally `fable`. This
+#             is the exact value whose silent resolution was the original leak.
+excluded:
+  - fable
+  - haiku
+  - inherit
+
+# Per role. `tier` is the model this role is worth; `effort` is what its brief
+# demands. They are independent: `prover` is top tier on medium effort because
+# its cost is tool calls, not reasoning. Escalation lifts `tier` only — there is
+# no call-time effort dial — so an escalated `standards` runs opus/medium, and
+# that is correct rather than a half-kept promise.
+roles:
+  adversary:
+    tier: top
+    effort: high
+  operator:
+    tier: top
+    effort: high
+  prover:
+    tier: top
+    effort: medium
+  standards:
+    tier: mid
+    effort: medium
+  spec:
+    tier: mid
+    effort: medium
+  steward:
+    tier: mid
+    effort: medium
+
+# Roles whose brief requires inventing something nobody wrote down, rather than
+# matching code against a written rule. This is what `effort: high` tracks, and
+# it is the reason effort does not follow tier.
+invents:
+  - adversary
+  - operator
+
+# Definitions a repo may ship that are not review roles. `challenger` has no
+# brief and never appears on a team sheet, but a repo may pin the refute pass's
+# effort with one; a coverage check must permit it rather than requiring the
+# definitions to equal the role set exactly.
+optional_definitions:
+  - challenger
+
+# Only `prover` may hold write tools — its protocol is mutate, run, revert.
+# Every role needs Bash: the skill passes git/gh COMMANDS rather than diff text,
+# so a role without it reviews nothing and reports NO FINDINGS, which reads
+# exactly like a clean review.
+tools:
+  required:
+    - Bash
+  write_capable:
+    - Edit
+    - Write
+    - NotebookEdit
+  may_write:
+    - prover
+  forbidden:
+    - Agent

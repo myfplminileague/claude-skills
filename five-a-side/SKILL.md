@@ -37,6 +37,10 @@ Set `model` on every `Agent` call. Tier by **what the role has to invent**, not 
 
 **A tier that does not name a model is not a policy.** This section used to reason at length about "top" and "mid" without anywhere saying what either one *was*, and paired that with a closing line that inherited the caller's model when a name did not resolve. Since no name was ever given, that line was the only rule that ever fired: every role ran on whatever the session was running, which is the largest model available, while this document appeared to describe a considered allocation. Nobody chose it and nobody could see it. Name the models.
 
+**The tables in this section are commentary. [`models.yml`](models.yml) is the policy.** It carries the same values in the one form a consuming repo can read, because prose forced every consumer that wanted to *enforce* this to restate it — and three hand-maintained copies of one policy drift the moment the table moves. Where the two disagree, `models.yml` wins and the table is the bug. A repo with a test suite should assert the two agree; this repo has no tests, so nothing else keeps the commentary honest.
+
+The tables stay because they carry the **reasoning**, which is the part a machine has no use for and a maintainer needs most.
+
 | Tier | Model | Effort |
 | --- | --- | --- |
 | **top** | `opus` | `high` |
