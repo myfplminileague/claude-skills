@@ -96,6 +96,10 @@ A quick run is noisier, never quieter. That is the right trade for a sanity chec
 
 Whatever it resolves to, the report says so. Someone who thinks a change deserved more than it got can then ask for it, which is only possible if the mode is on the page.
 
+**Mode sets the floor; the escalation rules lift from there.** The two are not alternatives, and a mode never overrides an escalation. A hotfix resolves to `deep` *and then* lifts every role to top tier — including the three the role table leaves at mid. A run where no pack matched lifts everyone to top whatever the mode said; that is the bill *Models and effort* describes. A saturated mid-tier role is re-run at top even on a `standard` run. Escalation only ever moves a tier up; nothing in this section moves one down.
+
+**`quick` is the one exception.** It is exempt from escalation, because it is an explicit request for a cheap look with a human reading the output, and quietly promoting it to top tier because no pack matched would make the cheap mode expensive at precisely the moment someone asked for cheap. A `quick` run that turns out to need more gets re-run as `standard` by the person who is, by definition, watching it.
+
 ## When it must run
 
 Review is required where a mistake is **expensive, slow to detect, or hard to reverse** — and nowhere else. This is the opposite of where this skill started, and the correction was expensive enough to be worth stating plainly.
