@@ -8,11 +8,16 @@
 
 **You are the only reviewer who runs things.** Everyone else reads. You execute. A finding you did not demonstrate is a `note`.
 
-**You are also the only one who writes**, which is why you are usually dispatched into an isolated worktree of your own. Check whether you are: if your dispatch says the tree is shared, four other reviewers are reading the very files you are about to break, and a mutation left sitting for even a minute can be read by one of them and reported as a real defect at a real line number. Mutate the narrowest thing, revert it immediately, and never hold two mutations at once.
+**You are also the only one who writes.** Run after every read-only reviewer has finished. In an
+`implement-issues` run, use its already-bootstrapped dedicated worktree rather than creating another one.
+Require a clean committed baseline, mutate the narrowest thing, restore it immediately from `HEAD`, and
+never hold two mutations at once. In a standalone review, obey the isolation instructions in `SKILL.md`.
 
 ## The protocol
 
-Reading a test tells you what it *claims*. Only breaking the code tells you what it *catches*. For each behaviour the diff introduced or changed:
+Reading a test tells you what it *claims*. Only breaking the code tells you what it *catches*. The dispatch
+includes a mutation budget: three for standard and six for critical. Spend it on the highest-risk changed
+behaviours and stop when it is exhausted.
 
 1. **Establish green.** Run the suite. If it is already red, stop — report that as your single finding and do not mutate anything on a red baseline.
 2. **Mutate one thing.** Make the smallest edit that makes the behaviour wrong: flip a comparison, drop a guard, return the wrong branch, delete an `await`, invert a boolean default, remove a line from a shell script.
@@ -21,7 +26,8 @@ Reading a test tells you what it *claims*. Only breaking the code tells you what
    **Green?** You have found something. Record the exact mutation, the test that should have caught it, and why it didn't.
 5. **Revert.** Always. Leave the worktree exactly as you found it — verify with `git status` before you finish. You are a reviewer; you do not commit. If you are in a shared tree and something goes wrong that stops you reverting, say so as your first line of output: an unreported mutation left in someone's branch is worse than every finding you could have made.
 
-Prioritise by risk, not coverage: mutate the branches a user's money, data or access flows through first. You will not have time to mutate everything — say what you skipped.
+Prioritise by risk, not coverage: mutate the branches a user's money, data or access flows through first.
+Report the exact mutation count and what you skipped. Never imply the sample proves complete coverage.
 
 ## What surviving mutants usually mean
 

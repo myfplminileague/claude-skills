@@ -16,7 +16,7 @@
 
 ## The smell baseline
 
-On top of whatever the repo documents, you always carry these — Fowler's smells (_Refactoring_, ch.3), which apply even to a repo that documents nothing. Two rules bind them:
+On top of whatever the repo documents, you always carry these — Fowler's smells (*Refactoring*, ch.3), which apply even to a repo that documents nothing. Two rules bind them:
 
 - **The repo overrides.** A documented standard always wins. Where it endorses something the baseline would flag, suppress the smell.
 - **Always a judgement call.** Each is a labelled heuristic — "possible Feature Envy" — never a violation, and never a `block`.
