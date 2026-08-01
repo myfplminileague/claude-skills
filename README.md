@@ -1,6 +1,6 @@
 # claude-skills
 
-myfplminileague org fork of [sarinsaurabh/claude-skills](https://github.com/sarinsaurabh/claude-skills) — the org's canonical build-workflow skills. Vendored into `my-fml-frontend` and `my-fml-backend` under `.claude/skills/`; edit HERE, then sync to the repos (never hand-edit the vendored copies). `debrief-a-call` is excluded (personal skill). Org conventions: PRs target the repo's default branch (frontend default = `staging` during the V2 build); no Co-Authored-By/Claude attribution on commits.
+myfplminileague org fork of [sarinsaurabh/claude-skills](https://github.com/sarinsaurabh/claude-skills) — the org's canonical build-workflow skills. Vendored into `my-fml-frontend`, `my-fml-backend`, and `my-fml-business-docs` under `.claude/skills/`; edit HERE, then sync to the repos (never hand-edit the vendored copies). `debrief-a-call` is excluded (personal skill). Org conventions: PRs target the repo's default branch (frontend default = `staging` during the V2 build); no Co-Authored-By/Claude attribution on commits.
 
 Upstream description: A collection of [Claude Code](https://claude.com/claude-code) skills — reusable, model-invocable workflows that extend what Claude can do in the terminal. Each skill lives in its own directory with a `SKILL.md` (name, description, and instructions) plus any supporting reference files.
 
@@ -11,8 +11,8 @@ Upstream description: A collection of [Claude Code](https://claude.com/claude-co
 | [`to-prd`](to-prd/SKILL.md) | Turn the current conversation into a PRD and publish it to the issue tracker. |
 | [`to-issues`](to-issues/SKILL.md) | Break a plan, spec or PRD into independently-grabbable issues using tracer-bullet vertical slices. |
 | [`next-batch`](next-batch/SKILL.md) | Triage front-end for `/implement-issues`: pick and prepare the next buildable batch of GitHub issues, check dependencies and in-flight work, and propose a build order. |
-| [`implement-issues`](implement-issues/SKILL.md) | Orchestrate end-to-end implementation of GitHub issues — dependency-ordered parallel builders (TDD), two `five-a-side` review-and-fix cycles, then one PR per issue. |
-| [`five-a-side`](five-a-side/SKILL.md) | The review gate. Five adversarial reviewers — standards, spec, adversary, operator, prover — plus a `steward` substitute for anything touching a user, each loading the repo's own rule packs, aggregated into one merge decision. |
+| [`implement-issues`](implement-issues/SKILL.md) | Orchestrate end-to-end implementation with deterministic risk planning, at most one remediation, focused verification, and one PR per issue. |
+| [`five-a-side`](five-a-side/SKILL.md) | A risk-budgeted review gate: repository packs select an exempt, standard, or critical lane; model review and mutation testing are bounded and measured. |
 | [`ship`](ship/SKILL.md) | Merge-and-deploy runbook for open PRs — watch CI, merge in dependency-safe order, run migrations, watch the deploy, smoke-check, then clean up branches. |
 | [`tdd`](tdd/SKILL.md) | Test-driven development with the red-green-refactor loop, plus references on mocking, interface design, deep modules, and refactoring. |
 | [`chunk-status`](chunk-status/SKILL.md) | Reconcile a project-plan chunk against reality — issues, merged PRs, deployed app — and propose plan-doc corrections. |
@@ -36,6 +36,10 @@ claude-skills/
 ├── implement-issues/SKILL.md
 ├── five-a-side/
 │   ├── SKILL.md
+│   ├── models.yml
+│   ├── scripts/
+│   │   ├── review_plan.py    # deterministic lane/team selection
+│   │   └── review_state.py   # metrics + one-remediation guard
 │   └── references/
 │       ├── standards.md      # Ødegaard — conventions + Fowler smell baseline
 │       ├── spec.md           # Bergkamp — fidelity to the issue/PRD/design
@@ -54,7 +58,7 @@ claude-skills/
     └── tests.md
 ```
 
-Rule **packs** are not in this repo — they live in each consuming repo at `.claude/five-a-side/packs/*.md`, because they are that repo's rules. The skill is org-wide and identical everywhere; the packs are local and differ. See [`five-a-side/references/pack-format.md`](five-a-side/references/pack-format.md).
+Rule **packs** are not in this repo — they live in each consuming repo at `.claude/five-a-side/packs/*.md`, because they are that repo's rules. Their frontmatter is the single source for path matching, lane, reviewers, and human acknowledgement; both Claude and CI call `review_plan.py`. The skill is org-wide and identical everywhere, while packs remain local. See [`five-a-side/references/pack-format.md`](five-a-side/references/pack-format.md).
 
 ## License
 

@@ -1,69 +1,77 @@
 # Pack format
 
-A **pack** is one domain's rules, written once per repo, read by whichever reviewers the domain engages. Packs are what make five fixed reviewers cover a whole stack: the skill knows the five questions, the pack knows the answers for this repo.
+A pack contains one repository domain's review rules and the policy that selects them. The deterministic
+planner and CI both read its frontmatter, so do not maintain a separate risk regex.
 
-Location: `.claude/five-a-side/packs/<domain>.md`, in the repo being reviewed.
+Location: `.claude/five-a-side/packs/<domain>.md`.
 
 ## Shape
 
 ```markdown
 ---
-domain: design-system
+domain: messaging
+lane: critical
+reviewers: ["standards", "spec", "adversary", "operator", "prover", "steward"]
+human_ack: ["outbound messaging and consent"]
 paths:
-  - "src/components/**"
-  - "src/app/**/*.tsx"
-  - "src/app/globals.css"
+  - "backend/notifications/**"
+  - ".github/workflows/whatsapp_campaign.yml"
 ---
 
-# design-system
+# messaging
 
-One paragraph: what this domain is and where its source of truth lives.
+One paragraph naming the domain and its source of truth.
 
 ## standards
-- Rules, one per line, each one checkable against a diff.
+- One checkable rule per line.
 
 ## spec
-- What "faithful" means in this domain.
+- What faithful delivery means here.
 
 ## adversary
-- Omit this section entirely if the domain has no attack surface.
-
-## operator
-- ...
-
-## prover
-- ...
-
-## steward
-- Omit unless this domain touches a real person's data, consent, money or accessibility.
+- Omit when this reviewer is absent from `reviewers`.
 ```
 
-## Rules for writing packs
+Required frontmatter:
 
-- **A section's presence is a trigger.** `adversary`, `operator` and `steward` only play when a matched pack has a non-empty section for them. An empty or omitted section benches that reviewer — that is the intended way to keep a UI-only PR from being reviewed for rollback safety. Do not write a placeholder section to be polite. (`steward` also has diff-content triggers of his own, listed in `SKILL.md`; a pack section is an additional way to bring him on, not the only one.)
-- **One rule per line, checkable against a diff.** "Never hardcode Tailwind colours — use the semantic tokens in `globals.css @theme`" is checkable. "Write clean components" is not, and will produce noise in every review forever.
-- **Link, don't restate.** If `docs/security/code-requirements.md` already says it, the pack line is a pointer plus the one-line summary. A pack that duplicates a doc will drift from it, and the reviewer will then cite a rule that no longer exists.
-- **Cite the incident where there is one.** A rule that carries "we had a nine-day silent outage because of this" gets weighted correctly by the reviewer and survives the next person who wants to delete it.
-- **Say what is out of scope.** A pack line that reads "ignore X, CI enforces it" saves a wasted finding on every future review.
-- **Globs are the whole trigger mechanism.** Too broad and every reviewer plays on every PR; too narrow and a real change is reviewed by nobody. Check yours against `git diff --name-only` on a few recent merges.
+- `domain`: unique and identical to the filename stem.
+- `lane`: `standard` or `critical`.
+- `reviewers`: JSON-compatible inline array using canonical role slugs.
+- `paths`: one or more repository-relative globs.
+- `human_ack`: optional JSON-compatible array of reasons; default `[]`.
+
+Run:
+
+```bash
+python3 .claude/skills/five-a-side/scripts/review_plan.py \
+  --packs-dir .claude/five-a-side/packs --validate
+```
+
+## Design rules
+
+- **Frontmatter is policy.** The planner selects the highest matched lane, unions reviewers, and aggregates
+  acknowledgement reasons. CI must consume the same output.
+- **A reviewer needs a section.** Every slug in `reviewers` must have a non-empty `## <role>` section. Do not
+  add placeholder sections or reviewers.
+- **One rule per line, checkable against a diff.** Link to existing documentation instead of duplicating it.
+- **Cite incidents.** They explain why recurring friction earns its place.
+- **Name exclusions.** State when CI already owns a check so reviewers do not spend findings on it.
+- **Keep globs narrow.** Backtest them against recent merges. A broad standard pack costs calls; a broad
+  critical pack also costs top-tier models and acknowledgement.
+- **Use overlapping packs deliberately.** A broad standard design-system pack can overlap a narrow critical
+  consent pack; the latter raises only the relevant files.
 
 ## Suggested domains
 
-Not prescriptive — split by *whose rules they are*, not by directory:
-
-| Domain | Typically covers |
+| Domain | Typical lane and roles |
 | --- | --- |
-| `design-system` | tokens, component primitives, icons, a11y, responsive |
-| `frontend-app` | routing, server/client boundary, data fetching, state |
-| `api` | route handlers, auth, middleware, request validation |
-| `data` | schema, migrations, RLS, query patterns |
-| `pipeline` | batch jobs, ingestion, scheduling, retries |
-| `ci-deploy` | workflows, deploy scripts, release process |
-| `content-legal` | vendored or generated prose, sync invariants |
-| `contracts` | cross-repo invariants — artifact shapes, which store owns which read, money maths |
+| Design system | standard: standards, spec, prover |
+| API/auth | critical: add adversary, operator, steward where consent/data applies |
+| Data/migrations | critical: standards, spec, adversary, operator, prover |
+| Pipeline | critical for unattended/irreversible paths; otherwise standard |
+| CI/deploy | critical: standards, spec, adversary, operator, prover |
+| Legal publication | critical: standards, spec, steward; usually no prover |
+| Review tooling | standard: standards, spec, prover |
 
-The `contracts` pack is the one most teams skip and most need. A reviewer sees one diff in one repo, so an agreement held between two repos is invisible to every role unless a pack states it. Write down the shape of anything one repo produces and another consumes, which store is allowed to serve which read, and any arithmetic whose correctness is defined elsewhere. Then require the finding to cite the other repo's definition, so a drift is caught by the side that broke it.
-
-## Keeping packs honest
-
-A pack is a prompt, not a wiki — the same discipline `CLAUDE.md` gets. When a review produces a finding nobody agrees with, the fix is usually to delete or narrow a pack line, not to argue with the reviewer. When an incident happens that a reviewer could have caught, add the line.
+When a finding nobody agrees with recurs, narrow the rule or glob. When an incident occurs that a role could
+have caught, add the smallest checkable rule and incident reference.
