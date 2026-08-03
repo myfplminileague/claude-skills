@@ -13,6 +13,7 @@ domain: messaging
 lane: critical
 reviewers: ["standards", "spec", "adversary", "operator", "prover", "steward"]
 human_ack: ["outbound messaging and consent"]
+human_ack_exempt_paths: ["backend/notifications/**/tests/**"]
 paths:
   - "backend/notifications/**"
   - ".github/workflows/whatsapp_campaign.yml"
@@ -39,6 +40,9 @@ Required frontmatter:
 - `reviewers`: JSON-compatible inline array using canonical role slugs.
 - `paths`: one or more repository-relative globs.
 - `human_ack`: optional JSON-compatible array of reasons; default `[]`.
+- `human_ack_exempt_paths`: optional JSON-compatible array of globs; default `[]`. A diff that matches a
+  pack only through these paths keeps the pack's lane and reviewers but does not require acknowledgement.
+  If any matched path is not exempt, acknowledgement remains required.
 
 Run:
 
@@ -51,6 +55,8 @@ python3 .claude/skills/five-a-side/scripts/review_plan.py \
 
 - **Frontmatter is policy.** The planner selects the highest matched lane, unions reviewers, and aggregates
   acknowledgement reasons. CI must consume the same output.
+- **Exempt acknowledgement, not review.** Use `human_ack_exempt_paths` for test or fixture paths that still
+  deserve the pack's review but cannot perform the irreversible action named by `human_ack`.
 - **A reviewer needs a section.** Every slug in `reviewers` must have a non-empty `## <role>` section. Do not
   add placeholder sections or reviewers.
 - **One rule per line, checkable against a diff.** Link to existing documentation instead of duplicating it.

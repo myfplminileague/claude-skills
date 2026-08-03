@@ -34,6 +34,8 @@ def write_pack(
     reviewers: list[str],
     paths: list[str],
     ack=None,
+    ack_exempt_paths=None,
+    include_ack_exempt_paths=True,
 ):
     lines = [
         "---",
@@ -41,12 +43,15 @@ def write_pack(
         f"lane: {lane}",
         f"reviewers: {json.dumps(reviewers)}",
         f"human_ack: {json.dumps(ack or [])}",
+        f"human_ack_exempt_paths: {json.dumps(ack_exempt_paths or [])}",
         "paths:",
         *[f'  - "{path}"' for path in paths],
         "---",
         f"# {name}",
         *[f"\n## {reviewer}\n- Test rule." for reviewer in reviewers],
     ]
+    if not include_ack_exempt_paths:
+        lines.remove(f"human_ack_exempt_paths: {json.dumps(ack_exempt_paths or [])}")
     (directory / f"{name}.md").write_text("\n".join(lines) + "\n")
 
 
@@ -117,6 +122,55 @@ class ReviewPlanTests(unittest.TestCase):
             result["matched_paths"],
             ["src/app/api/profile/route.ts", "src/app/settings/page.tsx"],
         )
+
+    def test_ack_exempt_paths_keep_review_but_remove_test_only_acknowledgement(self):
+        write_pack(
+            self.packs,
+            "messaging",
+            lane="critical",
+            reviewers=["adversary", "operator", "steward"],
+            paths=["backend/notifications/**"],
+            ack=["outbound messaging"],
+            ack_exempt_paths=["backend/notifications/**/tests/**"],
+        )
+
+        test_only = plan.build_plan(
+            plan.load_packs(self.packs),
+            ["backend/notifications/whatsapp/tests/test_send_service.py"],
+            [],
+        )
+        self.assertEqual(test_only["lane"], "critical")
+        self.assertIn("messaging", test_only["matched_packs"])
+        self.assertEqual(test_only["human_ack"], [])
+
+        mixed = plan.build_plan(
+            plan.load_packs(self.packs),
+            [
+                "backend/notifications/whatsapp/send_service.py",
+                "backend/notifications/whatsapp/tests/test_send_service.py",
+            ],
+            [],
+        )
+        self.assertEqual(mixed["human_ack"], ["outbound messaging"])
+
+    def test_pack_without_ack_exempt_paths_keeps_acknowledgement(self):
+        write_pack(
+            self.packs,
+            "legacy-messaging",
+            lane="critical",
+            reviewers=["operator"],
+            paths=["backend/notifications/**"],
+            ack=["outbound messaging"],
+            include_ack_exempt_paths=False,
+        )
+
+        result = plan.build_plan(
+            plan.load_packs(self.packs),
+            ["backend/notifications/whatsapp/tests/test_send_service.py"],
+            [],
+        )
+
+        self.assertEqual(result["human_ack"], ["outbound messaging"])
 
     def test_hotfix_without_risk_match_remains_exempt(self):
         result = plan.build_plan(plan.load_packs(self.packs), ["README.md"], ["hotfix"])
