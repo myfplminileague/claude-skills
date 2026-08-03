@@ -38,6 +38,7 @@ class Pack:
     reviewers: tuple[str, ...]
     paths: tuple[str, ...]
     human_ack: tuple[str, ...]
+    human_ack_exempt_paths: tuple[str, ...]
     file: Path
 
 
@@ -115,12 +116,18 @@ def parse_pack(file: Path) -> Pack:
     if not paths:
         raise PlanError(f"{file}: paths cannot be empty")
     human_ack = _inline_list(scalar.get("human_ack", "[]"), field="human_ack", file=file)
+    human_ack_exempt_paths = _inline_list(
+        scalar.get("human_ack_exempt_paths", "[]"),
+        field="human_ack_exempt_paths",
+        file=file,
+    )
     return Pack(
         domain=scalar["domain"],
         lane=lane,
         reviewers=tuple(reviewers),
         paths=tuple(paths),
         human_ack=tuple(human_ack),
+        human_ack_exempt_paths=tuple(human_ack_exempt_paths),
         file=file,
     )
 
@@ -175,7 +182,15 @@ def build_plan(packs: list[Pack], paths: list[str], signals: list[str]) -> dict[
         if LANE_RANK[pack.lane] > LANE_RANK[lane]:
             lane = pack.lane
         reviewers.update(pack.reviewers)
-        human_ack.update(pack.human_ack)
+        pack_paths = [
+            path for path in clean_paths if any(_matches(path, glob) for glob in pack.paths)
+        ]
+        acknowledgement_required = any(
+            not any(_matches(path, glob) for glob in pack.human_ack_exempt_paths)
+            for path in pack_paths
+        )
+        if acknowledgement_required:
+            human_ack.update(pack.human_ack)
 
     unknown_signals = sorted(set(signals) - {"hotfix", "duty-of-care", "full"})
     if unknown_signals:
