@@ -20,24 +20,21 @@ five-a-side packs decide how much review to buy.
 - Run deterministic quality checks once before review. Reviewers do not duplicate them.
 - Run at most one automated remediation. A remaining block goes to a human; never start cycle three.
 - Do not open a PR after a red deterministic check, `BLOCKED`, or `INCOMPLETE` result.
-- A push is a deliberate CI trigger, not a save point. Follow the push cadence below: at most three
-  CI-triggering events per PR in the normal case.
+- A push is a deliberate CI trigger, not a save point — follow the push cadence below.
 - Do not add Claude/Anthropic attribution to commits or PRs.
 
 ## Push cadence
 
-Every push and ready-for-review event bills CI minutes in the consuming repositories, and cancelling a
-superseded run does not refund it — jobs finish before cancellation fires. The normal case is at most three
-CI-triggering events per PR: the first push, ready-for-review, and one remediation push.
+At most three CI-triggering events per PR in the normal case: first push, ready-for-review, one remediation
+push. Cancelled superseded runs still bill — fewer pushes is the only saving.
 
-- Build and commit locally. Push for the first time only when the implementation is coherent and the
-  repository's deterministic checks pass locally. Never push to checkpoint work in progress.
-- Open the PR as a draft at first push. The primary CI workflows and the review gate skip draft PRs, so
-  body edits, labels, and follow-up commits cost nothing until the PR is marked ready.
-- Do not push per edit. While a PR is open, accumulate commits locally and push in batches.
-- Mark ready-for-review exactly once, when the implementation and local checks are complete. That runs the
-  full suite once.
-- After review or CI findings, fix every accepted finding locally and push once. Do not push per finding.
+- First push only when the implementation is coherent and local deterministic checks pass. Never push to
+  checkpoint work in progress.
+- Open the PR as a draft at first push — primary CI and the review gate skip drafts, so body edits, labels,
+  and follow-up commits are free until ready.
+- Do not push per edit; accumulate commits locally and push in batches.
+- Mark ready-for-review exactly once, when implementation and local checks are complete.
+- After review or CI findings, fix every accepted finding locally and push once.
 
 ## 1. Preflight
 
@@ -149,10 +146,9 @@ Push the issue branch once and open one draft PR against the default branch. Inc
 - full report link/body when review ran; and
 - human-acknowledgement requirement without applying that acknowledgement yourself.
 
-Finalize the body and labels while the PR is still a draft — draft events skip CI — then mark it ready for
-review exactly once. Record the CI snapshot from that run. CI is the final deterministic gate; do not
-describe queued checks as green. If CI or a human requires further changes, remediate per the push cadence:
-fix everything locally, push once. Remove the worktree after the branch and PR are safely remote.
+Finalize body and labels while still a draft, then mark ready — the CI snapshot comes from that run and is
+the final deterministic gate; do not describe queued checks as green. Remediate per the push cadence.
+Remove the worktree after the branch and PR are safely remote.
 
 ## Failure handling
 
