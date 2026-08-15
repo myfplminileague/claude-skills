@@ -1,6 +1,6 @@
 ---
 name: five-a-side
-description: Plan and run a risk-budgeted adversarial review of a diff using repository-owned rule packs, deterministic lane selection, bounded mutation testing, batched adjudication, and focused post-fix verification. Use for /five-a-side, branch or PR review, review since a fixed point, or an automated review gate invoked by another skill.
+description: Plan and run a risk-budgeted adversarial review of a diff using repository-owned rule packs, deterministic lane selection, bounded mutation testing, batched adjudication, and focused post-fix verification. Use for five-a-side (Claude /five-a-side; Codex $five-a-side or by name), branch or PR review, review since a fixed point, or an automated review gate invoked by another skill.
 ---
 
 # Five-a-side
@@ -19,6 +19,14 @@ Review expensive, slow-to-detect, or hard-to-reverse mistakes. Exempt everything
 Read the matching role brief under `references/` before dispatching that role. Read
 [`references/operating-notes.md`](references/operating-notes.md) only when changing this skill,
 auditing its effectiveness, or investigating an incomplete/late run.
+
+## Harness compatibility
+
+The lane, role, budget, and verdict contract is harness-neutral. When running in
+Codex, read [`references/codex-adapter.md`](references/codex-adapter.md) before
+resolving model tiers or dispatching reviewers. Claude-specific model and tool
+names are policy labels; translate them to the available Codex capability
+without weakening the lane or silently skipping a role.
 
 ## Hard rules
 

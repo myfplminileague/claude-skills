@@ -1,6 +1,6 @@
 ---
 name: chunk-status
-description: Reconcile a project-plan chunk against reality — map each plan item to its GitHub issues, merged PRs, and (optionally) the deployed app, report shipped/in-flight/missing per item, and propose exact plan-doc corrections for stale statuses. Use when the user runs /chunk-status, asks "what's the status of chunk N", "what got implemented", "is everything built/deployed", or wants the project plan's statuses fixed.
+description: Reconcile a project-plan chunk against reality — map each plan item to its GitHub issues, merged PRs, and (optionally) the deployed app, report shipped/in-flight/missing per item, and propose exact plan-doc corrections for stale statuses. Use for chunk-status (Claude /chunk-status; Codex $chunk-status or by name), questions about what is built or deployed, or stale project-plan statuses.
 ---
 
 # Chunk Status

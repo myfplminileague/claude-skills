@@ -1,8 +1,21 @@
-# claude-skills
+# Organisation agent skills
 
-myfplminileague org fork of [sarinsaurabh/claude-skills](https://github.com/sarinsaurabh/claude-skills) — the org's canonical build-workflow skills. Vendored into `my-fml-frontend`, `my-fml-backend`, and `my-fml-business-docs` under `.claude/skills/`; edit HERE, then sync to the repos (never hand-edit the vendored copies). `debrief-a-call` is excluded (personal skill). Org conventions: PRs target the repo's default branch (frontend default = `staging` during the V2 build); no Co-Authored-By/Claude attribution on commits.
+The repository name is retained for continuity, but these are the
+myfplminileague organisation's harness-neutral build and review skills. They are
+vendored into consuming repositories and exposed through both `.claude/skills/`
+and `.agents/skills/`. Edit the canonical skill here, merge through a pull
+request, then re-vendor the merged commit; never hand-edit a consuming copy.
 
-Upstream description: A collection of [Claude Code](https://claude.com/claude-code) skills — reusable, model-invocable workflows that extend what Claude can do in the terminal. Each skill lives in its own directory with a `SKILL.md` (name, description, and instructions) plus any supporting reference files.
+The collection began as an organisation fork of
+[sarinsaurabh/claude-skills](https://github.com/sarinsaurabh/claude-skills).
+`debrief-a-call` remains excluded because it is personal rather than
+organisation policy. Product rules, branding, deployment targets, and review
+packs remain local to each consuming repository.
+
+Each skill is a reusable, model-invocable terminal workflow with a `SKILL.md`
+and optional scripts or references. Claude Code may invoke a skill as
+`/skill-name`; Codex may use `$skill-name` or name it directly. Invocation
+syntax does not change the workflow.
 
 ## Skills
 
@@ -10,7 +23,7 @@ Upstream description: A collection of [Claude Code](https://claude.com/claude-co
 | --- | --- |
 | [`to-prd`](to-prd/SKILL.md) | Turn the current conversation into a PRD and publish it to the issue tracker. |
 | [`to-issues`](to-issues/SKILL.md) | Break a plan, spec or PRD into independently-grabbable issues using tracer-bullet vertical slices. |
-| [`next-batch`](next-batch/SKILL.md) | Triage front-end for `/implement-issues`: pick and prepare the next buildable batch of GitHub issues, check dependencies and in-flight work, and propose a build order. |
+| [`next-batch`](next-batch/SKILL.md) | Triage front-end for `implement-issues`: pick and prepare the next buildable batch of GitHub issues, check dependencies and in-flight work, and propose a build order. |
 | [`implement-issues`](implement-issues/SKILL.md) | Orchestrate end-to-end implementation with deterministic risk planning, at most one remediation, focused verification, and one PR per issue. |
 | [`five-a-side`](five-a-side/SKILL.md) | A risk-budgeted review gate: repository packs select an exempt, standard, or critical lane; model review and mutation testing are bounded and measured. |
 | [`ship`](ship/SKILL.md) | Merge-and-deploy runbook for open PRs — watch CI, merge in dependency-safe order, run migrations, watch the deploy, smoke-check, then clean up branches. |
@@ -18,15 +31,27 @@ Upstream description: A collection of [Claude Code](https://claude.com/claude-co
 | [`chunk-status`](chunk-status/SKILL.md) | Reconcile a project-plan chunk against reality — issues, merged PRs, deployed app — and propose plan-doc corrections. |
 | [`grill-me`](grill-me/SKILL.md) | Interview the user relentlessly about a plan or design until every branch of the decision tree is resolved. |
 
-## Installation
+## Discovery and vendoring
 
-Clone into your Claude Code skills directory:
+The root skill directories are canonical. This repository's
+`.agents/skills/<name>` symlinks let Codex discover them when working in this
+checkout. Consuming repositories vendor each selected skill, record its source
+commit, and expose that one copy to both harnesses.
 
-```bash
-git clone https://github.com/sarinsaurabh/claude-skills.git
+```text
+canonical organisation repository
+  <skill>/SKILL.md
+  .agents/skills/<skill> -> ../../<skill>
+
+consuming repository
+  .claude/skills/<skill>/   # vendored copy + provenance manifest
+  .agents/skills/<skill> -> ../../.claude/skills/<skill>
 ```
 
-Then copy or symlink the skills you want into `~/.claude/skills/` (personal) or your project's `.claude/skills/` directory. Claude Code discovers each skill by its `SKILL.md` and invokes it by name or when the described trigger matches.
+Claude-specific agent definitions and runtime settings may remain under
+`.claude/`; Codex translates the same role briefs and workflow requirements
+through its own tools. Runtime permissions, credentials, hooks, and model names
+must never be copied as if they were portable skill content.
 
 ## Structure
 
