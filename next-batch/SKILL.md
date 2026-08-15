@@ -1,6 +1,6 @@
 ---
 name: next-batch
-description: Pick and prepare the next buildable batch of GitHub issues — sync origin, enumerate open issues for a chunk or milestone, check dependencies, in-flight work, and overlap with recently merged PRs, verify each issue body is builder-ready, then propose a ≤4-issue batch in build order and hand off to /implement-issues. Use when the user runs /next-batch, or asks "what should we build next", "are these unblocked", "give me a build order", or wants the next wave from a chunk.
+description: Pick and prepare the next buildable batch of GitHub issues — sync origin, enumerate open issues for a chunk or milestone, check dependencies, in-flight work, and overlap with recently merged PRs, verify each issue body is builder-ready, then propose a four-issue maximum batch in build order and hand off to implement-issues. Use for next-batch (Claude /next-batch; Codex $next-batch or by name), build-order questions, or selecting the next wave from a chunk.
 ---
 
 # Next Batch

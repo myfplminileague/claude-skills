@@ -1,6 +1,6 @@
 ---
 name: implement-issues
-description: Orchestrate end-to-end implementation of up to four GitHub issues — dependency-ordered dedicated worktrees, complete spec bundles, TDD, deterministic risk planning, at most one five-a-side review/remediation, one PR per issue. Use for /implement-issues or requests to build tracker issues and open PRs.
+description: Orchestrate end-to-end implementation of up to four GitHub issues — dependency-ordered dedicated worktrees, complete spec bundles, TDD, deterministic risk planning, at most one five-a-side review/remediation, one PR per issue. Use for implement-issues (Claude /implement-issues; Codex $implement-issues or by name) or requests to build tracker issues and open PRs.
 ---
 
 # Implement issues
@@ -16,12 +16,12 @@ five-a-side packs decide how much review to buy.
 - Base on the freshly fetched remote default branch (or dependency branches when required); PRs still
   target the default branch.
 - Bootstrap once; reuse installed dependencies and ignored environment files for the whole chain.
-- Use `/tdd` during implementation and remediation.
+- Use the organisation `tdd` skill during implementation and remediation.
 - Run deterministic quality checks once before review; reviewers do not duplicate them.
 - At most one automated remediation. A remaining block goes to a human; never start cycle three.
 - No PR after a red deterministic check, `BLOCKED`, or `INCOMPLETE` result.
 - A push is a deliberate CI trigger, not a save point — follow the push cadence below.
-- No Claude/Anthropic attribution on commits or PRs.
+- No AI-agent attribution on commits or PRs.
 
 ## Push cadence
 

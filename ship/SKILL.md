@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Merge-and-deploy runbook for open PRs — watch CI, merge in dependency-safe order, run post-merge DB migrations, watch the deploy, smoke-check the deployed app, then clean up stale branches and worktrees. Use when the user runs /ship, or asks to "merge when green", "merge and deploy", "run db push", "clean up branches", or to land a batch of open PRs end to end.
+description: Merge-and-deploy runbook for open PRs — watch CI, merge in dependency-safe order, run post-merge DB migrations, watch the deploy, smoke-check the deployed app, then clean up stale branches and worktrees. Use for ship (Claude /ship; Codex $ship or by name), or requests to merge, deploy, and clean up a batch of pull requests.
 ---
 
 # Ship
@@ -44,4 +44,4 @@ Compact table: PR → CI → merged → deploy → smoke result, then one line e
 - Trust structured returns; don't re-verify green checks by other means.
 
 ## Commit attribution
-Do not add Co-Authored-By or any Claude/Anthropic attribution to merge commits, fix commits, or issues.
+Do not add Co-Authored-By or any AI-agent attribution to merge commits, fix commits, or issues.
