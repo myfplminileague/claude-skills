@@ -1,6 +1,6 @@
 ---
 name: five-a-side
-description: Plan and run a risk-budgeted adversarial review of a diff using repository-owned rule packs, deterministic lane selection, bounded mutation testing, batched adjudication, and focused post-fix verification. Use for five-a-side (Claude /five-a-side; Codex $five-a-side or by name), branch or PR review, review since a fixed point, or an automated review gate invoked by another skill.
+description: Plan and run a risk-budgeted adversarial review of a diff using repository-owned rule packs, deterministic lane selection, bounded mutation testing, batched adjudication, and focused post-fix verification. Use only when a user explicitly requests five-a-side (Claude /five-a-side; Codex $five-a-side or by name), for a branch or PR review or review since a fixed point.
 ---
 
 # Five-a-side
@@ -191,15 +191,15 @@ This skill never starts remediation itself. When a caller fixes blockers:
    contract/schema/deploy path not present before, or the user explicitly asks.
 6. If focused verification still blocks, stop for a human decision. Do not start cycle three.
 
-## Called by another skill
+## Manual follow-up
 
-`implement-issues` supplies the fixed point, dedicated worktree, complete spec source, scratch directory,
-and signals. Return blockers plus the decision; write the full report and state externally. Propagate
-`INCOMPLETE`. `quick` is unavailable to callers.
+When a user requests a follow-up review after a remediation, use the new fixed point and the same focused
+verification rules. Return blockers plus the decision; write the full report and state externally. Propagate
+`INCOMPLETE`. `quick` remains an explicit interactive choice only.
 
-## Enforcement
+## Invocation boundary
 
-CI should call `review_plan.py` against its changed-path file and require a recorded report only when the
-result is not exempt. The same pack frontmatter therefore controls Claude and CI. A report marker proves a
-review was recorded, not that it was good; required status checks determine whether the control is preventive
-or merely detective.
+This skill is opt-in. It runs only when a user explicitly invokes it or asks another agent to invoke it.
+`implement-issues`, CI, branch protection and repository workflows must not call it or require its report.
+The planner and gate scripts remain available for a manually requested review, and a user may choose to
+record the resulting report and labels as evidence without making them a merge mandate.

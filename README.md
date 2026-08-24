@@ -24,8 +24,8 @@ syntax does not change the workflow.
 | [`to-prd`](to-prd/SKILL.md) | Turn the current conversation into a PRD and publish it to the issue tracker. |
 | [`to-issues`](to-issues/SKILL.md) | Break a plan, spec or PRD into independently-grabbable issues using tracer-bullet vertical slices. |
 | [`next-batch`](next-batch/SKILL.md) | Triage front-end for `implement-issues`: pick and prepare the next buildable batch of GitHub issues, check dependencies and in-flight work, and propose a build order. |
-| [`implement-issues`](implement-issues/SKILL.md) | Orchestrate end-to-end implementation with deterministic risk planning, at most one remediation, focused verification, and one PR per issue. |
-| [`five-a-side`](five-a-side/SKILL.md) | A risk-budgeted review gate: repository packs select an exempt, standard, or critical lane; model review and mutation testing are bounded and measured. |
+| [`implement-issues`](implement-issues/SKILL.md) | Orchestrate end-to-end implementation with deterministic checks, optional user-requested review, and one PR per issue. |
+| [`five-a-side`](five-a-side/SKILL.md) | An opt-in risk-budgeted adversarial review: repository packs select an exempt, standard, or critical lane; users invoke it manually when needed. |
 | [`ship`](ship/SKILL.md) | Merge-and-deploy runbook for open PRs — watch CI, merge in dependency-safe order, run migrations, watch the deploy, smoke-check, then clean up branches. |
 | [`tdd`](tdd/SKILL.md) | Test-driven development with the red-green-refactor loop, plus references on mocking, interface design, deep modules, and refactoring. |
 | [`chunk-status`](chunk-status/SKILL.md) | Reconcile a project-plan chunk against reality — issues, merged PRs, deployed app — and propose plan-doc corrections. |
@@ -83,7 +83,7 @@ claude-skills/
     └── tests.md
 ```
 
-Rule **packs** are not in this repo — they live in each consuming repo at `.claude/five-a-side/packs/*.md`, because they are that repo's rules. Their frontmatter is the single source for path matching, lane, reviewers, and human acknowledgement; both Claude and CI call `review_plan.py`. The skill is org-wide and identical everywhere, while packs remain local. See [`five-a-side/references/pack-format.md`](five-a-side/references/pack-format.md).
+Rule **packs** are not in this repo — they live in each consuming repo at `.claude/five-a-side/packs/*.md`, because they are that repo's rules. Their frontmatter is the single source for path matching, lane, reviewers, and human acknowledgement when a user requests a review; manual invocations call `review_plan.py`. The skill is org-wide and identical everywhere, while packs remain local. See [`five-a-side/references/pack-format.md`](five-a-side/references/pack-format.md).
 
 ## License
 
